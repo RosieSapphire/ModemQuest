@@ -5,6 +5,7 @@
 #include "engine/config.h"
 #include "engine/n64.h"
 #include "engine/font.h"
+#include "engine/fade.h"
 
 #include "game/scene_index.h"
 #include "game/title.h"
@@ -21,11 +22,18 @@ static void (*render_funcs[SCENE_CNT])(void) = {
 	title_render, NULL,
 };
 
+static void (*terminate_funcs[SCENE_CNT])(void) = {
+	title_terminate, NULL,
+};
+
 int main(void)
 {
+#if DEBUG
 	debug_initialize();
+#endif
 	n64_init();
 	font_init();
+	fade_init_spr();
 	init_funcs[scene_index]();
 
 	for (;;)
@@ -43,7 +51,8 @@ int main(void)
 		rdpq_detach_show();
 	}
 
-	title_terminate();
+	terminate_funcs[scene_index]();
+	fade_terminate_spr();
 	font_terminate();
 	n64_terminate();
 }

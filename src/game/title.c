@@ -4,35 +4,17 @@
 #include "engine/util.h"
 #include "engine/config.h"
 #include "engine/font.h"
+#include "engine/fade.h"
 
 #include "game/title.h"
-
-/* defines */
-#define FADE_CIRCLE_WIDTH 32
-#define FADE_CIRCLE_HEIGHT 32
-#define FADE_CIRCLE_PIXEL_CNT (DISPLAY_WIDTH * DISPLAY_HEIGHT)
-#define FADE_CIRCLE_RADIUS_MAX 512
-
-enum
-{
-	FADE_STATE_IN = 0,
-	FADE_STATE_OUT,
-	FADE_STATE_CNT,
-};
 
 /* sprites */
 static sprite_t *spr_logo;
 static sprite_t *spr_traces;
 static sprite_t *spr_gradient;
 
-/* circle fade surface */
-static uint16_t surf_circle_pixels[FADE_CIRCLE_PIXEL_CNT];
-static surface_t surf_circle;
-
 /* variables */
 static int bg_pos[2];
-static int fade_circle_state = FADE_STATE_IN;
-static int fade_circle_radius = FADE_CIRCLE_RADIUS_MAX;
 
 void title_init(void)
 {
@@ -41,26 +23,11 @@ void title_init(void)
 	spr_traces = sprite_load("rom:/title_traces.ia4.sprite");
 	spr_gradient = sprite_load("rom:/title_gradient.rgba16.sprite");
 
-	/* circle fade surface */
-	for (int y = 0; y < FADE_CIRCLE_HEIGHT; y++)
-	{
-		for (int x = 0; x < FADE_CIRCLE_WIDTH; x++)
-		{
-			const int dir_x = x - (FADE_CIRCLE_WIDTH >> 1);
-			const int dir_y = y - (FADE_CIRCLE_HEIGHT >> 1);
-			const int dist_sq = dir_x * dir_x + dir_y * dir_y;
-			const int ind = y * FADE_CIRCLE_WIDTH + x;
-
-			surf_circle_pixels[ind] = (dist_sq < 16 * 16) * 0xFFFF;
-		}
-	}
-	surf_circle = surface_make_linear(surf_circle_pixels, FMT_RGBA16,
-			FADE_CIRCLE_WIDTH, FADE_CIRCLE_HEIGHT);
-	data_cache_writeback_invalidate_all();
-
 	/* variables */
 	bg_pos[0] = 0;
 	bg_pos[1] = 0;
+
+	fade_init_vals(FADE_STATE_IN, 0);
 }
 
 void title_update(void)
@@ -79,16 +46,7 @@ void title_update(void)
 	if (bg_pos[1] <= -256)
 		bg_pos[1] += 256;
 
-	/* circle fading */
-	const int fade_circle_radius_new[FADE_STATE_CNT] = {
-		fade_circle_radius + 16,
-		fade_circle_radius - 16,
-	};
-
-	fade_circle_state ^= pressed.start;
-	fade_circle_radius = CLAMP(fade_circle_radius_new[fade_circle_state],
-			0, FADE_CIRCLE_RADIUS_MAX);
-	debugf("%d: %d\n", fade_circle_state, fade_circle_radius);
+	fade_update(FADE_PIXELS_PER_FRAME_DEFAULT, pressed.start);
 }
 
 void title_render(void)
@@ -142,32 +100,7 @@ void title_render(void)
 			}, "A Homebrew N64 Original by\n"
 			"Aeryk Ressler & Rosie Sapphire");
 
-	/* fade circle */
-	if (fade_circle_radius == FADE_CIRCLE_RADIUS_MAX)
-		return;
-
-	int x0 = -(fade_circle_radius >> 1) + (DISPLAY_WIDTH >> 1);
-	int y0 = -(fade_circle_radius >> 1) + (DISPLAY_HEIGHT >> 1);
-	int x1 =  (fade_circle_radius >> 1) + (DISPLAY_WIDTH >> 1);
-	int y1 =  (fade_circle_radius >> 1) + (DISPLAY_HEIGHT >> 1);
-
-	if (fade_circle_radius)
-	{
-		rdpq_set_mode_standard();
-		rdpq_mode_blender(RDPQ_BLENDER((MEMORY_RGB, IN_ALPHA,
-						BLEND_RGB, ZERO)));
-		rdpq_mode_filter(FILTER_BILINEAR);
-		rdpq_tex_upload(TILE0, &surf_circle, NULL);
-		rdpq_texture_rectangle_scaled(TILE0, x0, y0, x1, y1, 0, 0,
-					      FADE_CIRCLE_WIDTH,
-					      FADE_CIRCLE_HEIGHT);
-	}
-
-	rdpq_set_mode_fill(RGBA16(0, 0, 0, 1));
-	rdpq_fill_rectangle(0, 0, x0, DISPLAY_HEIGHT);
-	rdpq_fill_rectangle(x1, 0, DISPLAY_WIDTH, DISPLAY_HEIGHT);
-	rdpq_fill_rectangle(x0, 0, x1, y0);
-	rdpq_fill_rectangle(x0, y1, x1, DISPLAY_HEIGHT);
+	fade_render();
 }
 
 void title_terminate(void)

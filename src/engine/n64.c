@@ -10,14 +10,16 @@ static int dfs_handle;
 void n64_init(void)
 {
 	/* libdragon */
-	debug_init_isviewer();
-	debug_init_usblog();
 	display_init(DISPLAY_RESOLUTION, DISPLAY_BITDEPTH,
 		     DISPLAY_BUFFER_CNT, DISPLAY_GAMMA, DISPLAY_FILTER);
 	joypad_init();
 	timer_init();
 	rdpq_init();
+#if DEBUG
+	debug_init_isviewer();
+	debug_init_usblog();
 	rdpq_debug_start();
+#endif
 	dfs_handle = dfs_init(DFS_DEFAULT_LOCATION);
 
 	/* varaibles */
@@ -40,7 +42,9 @@ void n64_terminate(void)
 {
 	/* libdragon */
 	dfs_close(dfs_handle);
+#if DEBUG
 	rdpq_debug_stop();
+#endif
 	rdpq_close();
 	timer_close();
 	joypad_close();

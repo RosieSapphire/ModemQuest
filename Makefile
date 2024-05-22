@@ -56,7 +56,7 @@ filesystem/%.sprite: assets/%.png
 clean:
 	rm -rf $(BUILD_DIR) $(ROM) filesystem/
 
-BETTY_IGNORE := --ignore=PREFER_KERNEL_TYPES
+BETTY_IGNORE := --ignore=PREFER_KERNEL_TYPES,CONSTANT_COMPARISON
 BETTY_FLAGS  := -strict -subjective --show-types \
 		--allow-global-variables $(BETTY_IGNORE)
 BETTY_SCAN   := $(filter-out include/debug/debug.h,$(H_FILES)) \

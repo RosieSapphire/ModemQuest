@@ -1,7 +1,7 @@
 #include <libdragon.h>
 
-#include "engine/util.h"
 #include "engine/config.h"
+#include "engine/util.h"
 #include "engine/fade.h"
 
 #define FADE_SURF_WIDTH 32
@@ -29,7 +29,7 @@ void fade_init_spr(void)
 		}
 	}
 	surf = surface_make_linear(surf_pixels, FMT_RGBA16,
-			FADE_SURF_WIDTH, FADE_SURF_HEIGHT);
+				   FADE_SURF_WIDTH, FADE_SURF_HEIGHT);
 	data_cache_writeback_invalidate_all();
 }
 
@@ -63,7 +63,7 @@ void fade_render(void)
 	};
 
 	if (!fade_radius)
-		goto draw_borders;
+		goto draw_black;
 
 	rdpq_set_mode_standard();
 	rdpq_mode_blender(RDPQ_BLENDER((MEMORY_RGB, IN_ALPHA,
@@ -74,12 +74,16 @@ void fade_render(void)
 				      rect[0], rect[1],  rect[2], rect[3],
 				      0, 0, FADE_SURF_WIDTH, FADE_SURF_HEIGHT);
 
-draw_borders:
 	rdpq_set_mode_fill(RGBA16(0, 0, 0, 1));
 	rdpq_fill_rectangle(0, 0, rect[0], DISPLAY_HEIGHT);
 	rdpq_fill_rectangle(rect[2], 0, DISPLAY_WIDTH, DISPLAY_HEIGHT);
 	rdpq_fill_rectangle(rect[0], 0, rect[2], rect[1]);
 	rdpq_fill_rectangle(rect[0], rect[3], rect[2], DISPLAY_HEIGHT);
+
+	return;
+
+draw_black:
+	rdpq_clear(RGBA16(0, 0, 0, 1));
 }
 
 void fade_terminate_spr(void)

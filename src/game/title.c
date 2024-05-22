@@ -1,7 +1,7 @@
-#include <libdragon.h>
-
 #include "engine/fade.h"
+#include "engine/util.h"
 
+#include "game/scene_index.h"
 #include "game/title.h"
 
 /* sprites */
@@ -11,9 +11,20 @@ sprite_t *title_spr_gradient;
 
 /* variables */
 int title_bg_pos[2];
+int is_exiting;
+
+static void title_terminate(UNUSED void *dummy)
+{
+	/* sprites */
+	sprite_free(title_spr_gradient);
+	sprite_free(title_spr_traces);
+	sprite_free(title_spr_logo);
+}
 
 void title_init(void)
 {
+	fade_state_setup(FADE_STATE_IN);
+
 	/* sprites */
 	title_spr_logo = sprite_load("rom:/title_logo.ci8.sprite");
 	title_spr_traces = sprite_load("rom:/title_traces.ia4.sprite");
@@ -22,17 +33,11 @@ void title_init(void)
 	/* variables */
 	title_bg_pos[0] = 0;
 	title_bg_pos[1] = 0;
-
-	fade_init_vals(FADE_STATE_IN, 0);
+	is_exiting = 0;
 }
 
-void title_update(void)
+int title_update(const joypad_buttons_t pressed)
 {
-	joypad_buttons_t pressed;
-
-	joypad_poll();
-	pressed = joypad_get_buttons_pressed(JOYPAD_PORT_1);
-
 	/* bg moving */
 	title_bg_pos[0]--;
 	if (title_bg_pos[0] <= -256)
@@ -42,13 +47,14 @@ void title_update(void)
 	if (title_bg_pos[1] <= -256)
 		title_bg_pos[1] += 256;
 
-	fade_update(FADE_PIXELS_PER_FRAME_DEFAULT, pressed.start);
-}
+	const int cond_to_exit = pressed.start & ~is_exiting;
 
-void title_terminate(void)
-{
-	/* sprites */
-	sprite_free(title_spr_gradient);
-	sprite_free(title_spr_traces);
-	sprite_free(title_spr_logo);
+	is_exiting ^= cond_to_exit;
+	if (fade_update(cond_to_exit) && is_exiting)
+	{
+		rdpq_call_deferred(title_terminate, NULL);
+		return (SCENE_TESTAREA);
+	}
+
+	return (SCENE_TITLE);
 }

@@ -37,16 +37,3 @@ void n64_update_ticks_accum(void)
 	n64_ticks_last = n64_ticks_now;
 	n64_ticks_accum += ticks_frame;
 }
-
-void n64_terminate(void)
-{
-	/* libdragon */
-	dfs_close(dfs_handle);
-#if DEBUG
-	rdpq_debug_stop();
-#endif
-	rdpq_close();
-	timer_close();
-	joypad_close();
-	display_close();
-}

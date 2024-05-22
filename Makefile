@@ -1,4 +1,4 @@
-DEBUG     := 0
+DEBUG     := 1
 BUILD_DIR := build
 
 include $(N64_INST)/include/n64.mk
@@ -30,7 +30,7 @@ ROM    := $(TARGET).z64
 INC_FLAGS  := $(INC_DIRS:%=-I%)
 N64_CFLAGS += $(INC_FLAGS)
 ifeq ($(DEBUG),1)
-	N64_CFLAGS += -g -O0 -DDEBUG_MODE=1
+	N64_CFLAGS += -g -O0 -DDEBUG -DDEBUG_MODE=1
 	N64_LDFLAGS += -g
 else
 	N64_CFLAGS += -Os -DDEBUG_MODE=0

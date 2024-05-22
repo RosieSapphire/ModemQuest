@@ -7,6 +7,5 @@ extern uint64_t n64_ticks_last, n64_ticks_now, n64_ticks_accum;
 
 void n64_init(void);
 void n64_update_ticks_accum(void);
-void n64_terminate(void);
 
 #endif /* _ENGINE_N64_H_ */

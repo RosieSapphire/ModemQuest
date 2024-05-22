@@ -25,8 +25,3 @@ void font_printf(const float x, const float y,
 	rdpq_text_printf(parms, FONT_ID, x, y, fmt, args);
 	va_end(args);
 }
-
-void font_terminate(void)
-{
-	rdpq_font_free(font);
-}

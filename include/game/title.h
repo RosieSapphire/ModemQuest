@@ -1,6 +1,8 @@
 #ifndef _GAME_TITLE_H_
 #define _GAME_TITLE_H_
 
+#include <libdragon.h>
+
 /* sprites */
 extern sprite_t *title_spr_logo;
 extern sprite_t *title_spr_traces;
@@ -11,8 +13,7 @@ extern int title_bg_pos[2];
 
 /* base */
 void title_init(void);
-void title_update(void);
-void title_terminate(void);
+int title_update(const joypad_buttons_t pressed);
 
 /* rendering */
 void title_render(void);

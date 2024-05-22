@@ -6,7 +6,7 @@
 enum
 {
 	SCENE_TITLE,
-	SCENE_GAME,
+	SCENE_TESTAREA,
 	SCENE_CNT,
 };
 

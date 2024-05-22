@@ -8,13 +8,16 @@
 #define FADE_SURF_HEIGHT 32
 #define FADE_SURF_PIXEL_CNT (DISPLAY_WIDTH * DISPLAY_HEIGHT)
 
+#define FADE_RADIUS_MAX 512
+#define FADE_SPEED 16
+
 static uint16_t surf_pixels[FADE_SURF_PIXEL_CNT];
 static surface_t surf;
 
-static int fade_state = FADE_STATE_IN;
+static int fade_state = FADE_STATE_DISABLED;
 static int fade_radius = FADE_RADIUS_MAX;
 
-void fade_init_spr(void)
+void fade_load_spr(void)
 {
 	for (int y = 0; y < FADE_SURF_HEIGHT; y++)
 	{
@@ -33,26 +36,47 @@ void fade_init_spr(void)
 	data_cache_writeback_invalidate_all();
 }
 
-void fade_init_vals(const int fade_state_new, const int fade_radius_new)
+void fade_state_setup(const int fade_state_new)
 {
-	fade_state = fade_state_new;
-	fade_radius = fade_radius_new;
-}
-
-void fade_update(const int pixels_per_frame, const uint8_t start_pressed)
-{
-	const int fade_radius_new[FADE_STATE_CNT] = {
-		fade_radius + 16,
-		fade_radius - 16,
+	const int fade_radius_new[3] = {
+		0, 0, 512,
 	};
 
-	fade_state ^= start_pressed;
-	fade_radius = CLAMP(fade_radius_new[fade_state], 0, FADE_RADIUS_MAX);
+	fade_state = fade_state_new;
+	fade_radius = fade_radius_new[fade_state + 1];
+}
+
+int fade_update(const int should_switch)
+{
+	int just_completed = 0;
+	const int fade_radius_new[FADE_STATE_CNT] = {
+		fade_radius + FADE_SPEED,
+		fade_radius - FADE_SPEED,
+	};
+
+	fade_state_setup(fade_state ^ should_switch);
+	fade_radius = fade_radius_new[fade_state];
+
+	const int bound_conds[2] = {
+		(fade_radius < 0), (fade_radius > FADE_RADIUS_MAX),
+	};
+
+	for (int i = 0; i < 2; i++)
+	{
+		if (!(just_completed = bound_conds[i]))
+			continue;
+
+		fade_radius = (int[2]){0, FADE_RADIUS_MAX}[i];
+		break;
+	}
+
+	return (just_completed);
 }
 
 void fade_render(void)
 {
-	if (fade_radius == FADE_RADIUS_MAX)
+	if (fade_radius == FADE_RADIUS_MAX ||
+	    fade_state == FADE_STATE_DISABLED)
 		return;
 
 	const int rect[4] = {
@@ -84,9 +108,4 @@ void fade_render(void)
 
 draw_black:
 	rdpq_clear(RGBA16(0, 0, 0, 1));
-}
-
-void fade_terminate_spr(void)
-{
-	surface_free(&surf);
 }

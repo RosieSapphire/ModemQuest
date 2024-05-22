@@ -1,5 +1,8 @@
 .cache/
+.checkpatch*
 build/
 filesystem/
 *.json
 *.z64
+Story.md
+*.toml

@@ -31,5 +31,6 @@ int testarea_update(const joypad_buttons_t pressed)
 
 void testarea_render(void)
 {
+	rdpq_clear(RGBA16(0x3, 0x6, 0x9, 0x1));
 	fade_render();
 }

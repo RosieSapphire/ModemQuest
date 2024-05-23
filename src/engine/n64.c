@@ -5,8 +5,6 @@
 
 uint64_t n64_ticks_last, n64_ticks_now, n64_ticks_accum;
 
-static int dfs_handle;
-
 void n64_init(void)
 {
 	/* libdragon */
@@ -20,7 +18,7 @@ void n64_init(void)
 	debug_init_usblog();
 	rdpq_debug_start();
 #endif
-	dfs_handle = dfs_init(DFS_DEFAULT_LOCATION);
+	dfs_init(DFS_DEFAULT_LOCATION);
 
 	/* varaibles */
 	n64_ticks_last = timer_ticks();

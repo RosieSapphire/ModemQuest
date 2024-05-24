@@ -48,7 +48,6 @@ void fade_state_setup(const int fade_state_new)
 
 int fade_update(const int should_switch)
 {
-	int just_completed = 0;
 	const int fade_radius_new[FADE_STATE_CNT] = {
 		fade_radius + FADE_SPEED,
 		fade_radius - FADE_SPEED,
@@ -56,21 +55,13 @@ int fade_update(const int should_switch)
 
 	fade_state_setup(fade_state ^ should_switch);
 	fade_radius = fade_radius_new[fade_state];
-
-	const int bound_conds[2] = {
-		(fade_radius < 0), (fade_radius > FADE_RADIUS_MAX),
-	};
-
-	for (int i = 0; i < 2; i++)
+	if (fade_radius < 0)
 	{
-		if (!(just_completed = bound_conds[i]))
-			continue;
-
-		fade_radius = (int[2]){0, FADE_RADIUS_MAX}[i];
-		break;
+		fade_radius = 0;
+		return (1);
 	}
 
-	return (just_completed);
+	return (0);
 }
 
 void fade_render(void)

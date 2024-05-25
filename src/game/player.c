@@ -48,10 +48,12 @@ void player_update(const joypad_inputs_t held)
 	{
 		const int stick_move_x = (stick_x > 0) - (stick_x < 0);
 		const int stick_move_y = (stick_y < 0) - (stick_y > 0);
+		const int player_move_x = stick_move_x + dpad_x;
+		const int player_move_y = stick_move_y + dpad_y;
 		const int player_x_old = player.x;
 		const int player_y_old = player.y;
-		int player_x_new = player_x_old + stick_move_x + dpad_x;
-		int player_y_new = player_y_old + stick_move_y + dpad_y;
+		int player_x_new = player_x_old + player_move_x;
+		int player_y_new = player_y_old + player_move_y;
 
 		if (tiles[player_y_new * TILES_X + player_x_new]
 		    == TILE_TYPE_WALL)
@@ -75,18 +77,18 @@ void player_update(const joypad_inputs_t held)
 				{ 1,  1}, {-1,  1}, { 1, -1}, {-1, -1},
 			};
 
-			if (player_x_new == player_x_old + poslut[i][0] &&
-			    player_y_new == player_y_old + poslut[i][1])
-			{
-				if (tiles[player_y_old * TILES_X +
-				    (player_x_old + poslut[i][0])]
-				    == TILE_TYPE_WALL)
-					player_x_new = player_x_old;
+			if (player_x_new != player_x_old + poslut[i][0] ||
+			    player_y_new != player_y_old + poslut[i][1])
+				continue;
 
-				if (tiles[(player_y_old + poslut[i][1]) *
-				    TILES_X + player_x_old] == TILE_TYPE_WALL)
-					player_y_new = player_y_old;
-			}
+			if (tiles[player_y_old * TILES_X +
+			    (player_x_old + poslut[i][0])]
+			    == TILE_TYPE_WALL)
+				player_x_new = player_x_old;
+
+			if (tiles[(player_y_old + poslut[i][1]) *
+			    TILES_X + player_x_old] == TILE_TYPE_WALL)
+				player_y_new = player_y_old;
 		}
 
 		player.x = player_x_new;

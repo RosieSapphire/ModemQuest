@@ -23,30 +23,36 @@ void tiles_init(void)
 	memcpy(tiles, tiles_new, TILES_DIM * sizeof(*tiles));
 }
 
-static void tile_render(const int x, const int y, const uint8_t r,
-			const uint8_t g, const uint8_t b)
-{
-	int xt = x * TILE_SIZE;
-	int yt = y * TILE_SIZE;
-
-	rdpq_fill_rect_border(xt, yt, xt + TILE_SIZE,
-			      yt + TILE_SIZE, r, g, b, 2);
-}
-
 void tiles_render(void)
 {
+	int x_off = 0;
+	int y_off = 0;
+
+	float plx, ply;
+
+	player_get_pos_lerped(&plx, &ply);
+	x_off = MIN(plx - ((DISPLAY_WIDTH >> 1) - (TILE_SIZE >> 1)), 0);
+	y_off = MIN(ply - ((DISPLAY_HEIGHT >> 1) - (TILE_SIZE >> 1)), 0);
+
 	for (int y = 0; y < TILES_Y; y++)
 	{
 		for (int x = 0; x < TILES_X; x++)
 		{
+			int xo = (x * TILE_SIZE) - x_off;
+			int yo = (y * TILE_SIZE) - y_off;
+
 			switch (tiles[y * TILES_X + x])
 			{
 			case TILE_TYPE_FLOOR:
-				tile_render(x, y, 0xA, 0x0, 0x4);
+				rdpq_fill_rect_border(xo, yo, xo + TILE_SIZE,
+						      yo + TILE_SIZE,
+						      0xA, 0x0, 0x4, 2);
 				break;
 
 			case TILE_TYPE_WALL:
-				tile_render(x, y, 0x01, 0x15, 0x07);
+				rdpq_fill_rect_border(xo, yo, xo + TILE_SIZE,
+						      yo + TILE_SIZE,
+						      0x1, 0x15, 0x7, 2);
 				break;
 
 			default:

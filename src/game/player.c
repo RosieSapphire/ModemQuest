@@ -112,15 +112,21 @@ void player_update(const joypad_inputs_t held)
 	}
 }
 
-void player_render(void)
+void player_get_pos_lerped(float *x, float *y)
 {
 	const float t = (float)(PLAYER_MOVE_TIMER_MAX - player.move_timer) /
 		PLAYER_MOVE_TIMER_MAX;
-	const int xlerp = roundf(lerpf(player.x_lerp_a, player.x_lerp_b, t));
-	const int ylerp = roundf(lerpf(player.y_lerp_a, player.y_lerp_b, t));
+	*x = roundf(lerpf(player.x_lerp_a, player.x_lerp_b, t));
+	*y = roundf(lerpf(player.y_lerp_a, player.y_lerp_b, t));
+}
 
-	rdpq_fill_rect_border(xlerp, ylerp,
-			      xlerp + TILE_SIZE,
-			      ylerp + TILE_SIZE,
+void player_render(void)
+{
+	float x, y;
+
+	player_get_pos_lerped(&x, &y);
+	x = MAX(x, (DISPLAY_WIDTH >> 1) - (TILE_SIZE >> 1));
+	y = MAX(y, (DISPLAY_HEIGHT >> 1) - (TILE_SIZE >> 1));
+	rdpq_fill_rect_border(x, y, x + TILE_SIZE, y + TILE_SIZE,
 			      0x06, 0x11, 0x15, 2);
 }

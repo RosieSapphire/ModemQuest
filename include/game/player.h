@@ -16,6 +16,7 @@ extern player_t player;
 
 void player_init(const int x, const int y);
 void player_update(const joypad_inputs_t held);
+void player_get_pos_lerped(float *x, float *y);
 void player_render(void);
 
 #endif /* _GAME_PLAYER_H_ */

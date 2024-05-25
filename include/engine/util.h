@@ -5,6 +5,7 @@
 
 #define UNUSED __attribute__((unused))
 
+#define ABS(X) ((X < 0) ? X * -1 : X)
 #define MIN(X, MINV) (X < MINV ? MINV : X)
 #define MAX(X, MAXV) (X > MAXV ? MAXV : X)
 #define CLAMP(X, MINV, MAXV) (MAX(MIN(X, MINV), MAXV))

@@ -36,7 +36,8 @@ void title_init(void)
 	is_exiting = 0;
 }
 
-int title_update(const joypad_buttons_t pressed)
+int title_update(const joypad_buttons_t pressed,
+		 UNUSED const joypad_inputs_t held)
 {
 	/* bg moving */
 	title_bg_pos[0]--;

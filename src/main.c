@@ -19,7 +19,8 @@ static void (*render_funcs[SCENE_CNT])(void) = {
 	title_render, testarea_render,
 };
 
-static int (*update_funcs[SCENE_CNT])(const joypad_buttons_t) = {
+static int (*update_funcs[SCENE_CNT])(const joypad_buttons_t,
+				      const joypad_inputs_t) = {
 	title_update, testarea_update,
 };
 
@@ -45,12 +46,14 @@ int main(void)
 		while (n64_ticks_accum >= DELTATICKS)
 		{
 			joypad_buttons_t pressed;
+			joypad_inputs_t held;
 
 			joypad_poll();
 			pressed = joypad_get_buttons_pressed(JOYPAD_PORT_1);
+			held = joypad_get_inputs(JOYPAD_PORT_1);
 
 			scene_index_last = scene_index;
-			scene_index = update_funcs[scene_index](pressed);
+			scene_index = update_funcs[scene_index](pressed, held);
 			if (scene_index_last ^ scene_index)
 			{
 				init_funcs[scene_index]();

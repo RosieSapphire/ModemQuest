@@ -13,7 +13,7 @@ extern int title_bg_pos[2];
 
 /* base */
 void title_init(void);
-int title_update(const joypad_buttons_t pressed);
+int title_update(const joypad_buttons_t pressed, const joypad_inputs_t held);
 
 /* rendering */
 void title_render(void);

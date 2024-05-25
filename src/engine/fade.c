@@ -33,6 +33,9 @@ void fade_state_setup(const int fade_state_new)
 
 int fade_update(const int should_switch)
 {
+	if (fade_state == FADE_STATE_DISABLED)
+		return (0);
+
 	const int fade_radius_new[FADE_STATE_CNT] = {
 		fade_radius + FADE_SPEED,
 		fade_radius - FADE_SPEED,

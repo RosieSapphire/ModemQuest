@@ -14,8 +14,9 @@ static void testarea_terminate(void *dummy)
 
 void testarea_init(void)
 {
-	player_init(2, 2);
-	tiles_init();
+	int px, py;
+	tiles_init("rom:/testarea.map", &px, &py);
+	player_init(px, py);
 	fade_state_setup(FADE_STATE_DISABLED);
 
 	is_exiting = 0;
@@ -39,7 +40,7 @@ int testarea_update(const joypad_buttons_t pressed, const joypad_inputs_t held)
 
 void testarea_render(void)
 {
-	rdpq_clear(RGBA16(0x3, 0x6, 0x9, 0x1));
+	rdpq_clear(RGBA16(0x4, 0x0, 0x7, 0x1));
 	tiles_render();
 	player_render();
 	fade_render();

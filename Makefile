@@ -19,8 +19,10 @@ D_FILES  := $(O_FILES:%.o=%.d)
 
 ASSETS_TTF  := $(wildcard assets/*.ttf)
 ASSETS_PNG  := $(wildcard assets/*.png)
+ASSETS_MAP  := $(wildcard assets/*.map)
 ASSETS_CONV := $(ASSETS_TTF:assets/%.ttf=filesystem/%.font64) \
-	       $(ASSETS_PNG:assets/%.png=filesystem/%.sprite)
+	       $(ASSETS_PNG:assets/%.png=filesystem/%.sprite) \
+	       $(ASSETS_MAP:assets/%.map=filesystem/%.map) \
 
 TARGET := modemquest
 ELF    := $(BUILD_DIR)/$(TARGET).elf
@@ -52,6 +54,11 @@ filesystem/%.sprite: assets/%.png
 	@mkdir -p $(dir $@)
 	@echo "    [SPRITE] $@"
 	$(N64_MKSPRITE) $(MKSPRITE_FLAGS) -o filesystem "$<"
+
+filesystem/%.map: assets/%.map
+	@mkdir -p $(dir $@)
+	@echo "    [MAP] $@"
+	cp $< $@
 
 clean:
 	rm -rf $(BUILD_DIR) $(ROM) filesystem/

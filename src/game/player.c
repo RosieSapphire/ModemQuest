@@ -57,7 +57,7 @@ void player_update(const joypad_inputs_t held)
 
 		/*
 		 * make sure that when we're going diagonally, we're not
-		 * phasing through adjascent tiles, and also so we can
+		 * phasing through adjacent tiles, and also so we can
 		 * slide on walls if we're moving diagonal just a little bit
 		 */
 		for (int i = 0; i < 4; i++)
@@ -71,17 +71,16 @@ void player_update(const joypad_inputs_t held)
 			    player_y_new != player_y_old + poslut[i][1])
 				continue;
 
-			if (tiles[player_y_old * TILES_X +
-			    (player_x_old + poslut[i][0])]
+			if (tiles[player_y_old][player_x_old + poslut[i][0]]
 			    == TILE_TYPE_WALL)
 				player_x_new = player_x_old;
 
-			if (tiles[(player_y_old + poslut[i][1]) *
-			    TILES_X + player_x_old] == TILE_TYPE_WALL)
+			if (tiles[player_y_old + poslut[i][1]][player_x_old]
+			    == TILE_TYPE_WALL)
 				player_y_new = player_y_old;
 
-			if (tiles[(player_y_old + poslut[i][1]) *
-			    TILES_X + (player_x_old + poslut[i][0])]
+			if (tiles[player_y_old + poslut[i][1]]
+			    [player_x_old + poslut[i][0]]
 			    == TILE_TYPE_WALL)
 			{
 				if (ABS(player_move_x) > ABS(player_move_y))
@@ -91,8 +90,7 @@ void player_update(const joypad_inputs_t held)
 			}
 		}
 
-		if (tiles[player_y_new * TILES_X + player_x_new]
-		    == TILE_TYPE_WALL)
+		if (tiles[player_y_new][player_x_new] == TILE_TYPE_WALL)
 		{
 			player_x_new = player_x_old;
 			player_y_new = player_y_old;

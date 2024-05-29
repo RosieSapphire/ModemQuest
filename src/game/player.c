@@ -21,11 +21,15 @@ void player_init(const int x, const int y)
 	player.y_lerp_a = y * TILE_SIZE;
 	player.x_lerp_b = x * TILE_SIZE;
 	player.y_lerp_b = y * TILE_SIZE;
+	player.flags = 0;
 	debugf("INITIALIZED PLAYER '%s'\n", player.name);
 }
 
 void player_update(const joypad_inputs_t held)
 {
+	if (player.flags & PLAYER_FLAG_TALKING)
+		return;
+
 	int stick_x = held.stick_x;
 	int stick_y = held.stick_y;
 	int dpad_x = held.btn.d_right - held.btn.d_left;

@@ -4,10 +4,12 @@
 
 #include "game/scene_index.h"
 #include "game/player.h"
+#include "game/npc.h"
 #include "game/tiles.h"
 #include "game/testarea.h"
 
 static int is_exiting;
+static npc_t testnpc;
 
 static void testarea_terminate(void *dummy)
 {}
@@ -17,6 +19,17 @@ void testarea_init(void)
 	int px, py;
 	tiles_init("rom:/testarea.map", &px, &py);
 	player_init(px, py);
+	npc_init(&testnpc, 8, 6, 2,
+	     	 (const dialogue_line_t[2]) {
+		 {
+		 .speaker = "Test NPC",
+		 .line = "This is just a test line",
+		 },
+		 {
+		 .speaker = "Test NPC",
+		 .line = "I really hope this works",
+		 },
+		 });
 	fade_state_setup(FADE_STATE_DISABLED);
 
 	is_exiting = 0;
@@ -24,6 +37,7 @@ void testarea_init(void)
 
 int testarea_update(const joypad_buttons_t pressed, const joypad_inputs_t held)
 {
+	npc_player_interact(&testnpc, pressed);
 	player_update(held);
 
 	int exit_cond = pressed.start & ~is_exiting;
@@ -40,8 +54,9 @@ int testarea_update(const joypad_buttons_t pressed, const joypad_inputs_t held)
 
 void testarea_render(void)
 {
-	rdpq_clear(RGBA16(0x4, 0x0, 0x7, 0x1));
+	rdpq_clear(RGBA16(0, 0, 0, 1));
 	tiles_render();
 	player_render();
+	npc_dialogue_box_render(&testnpc);
 	fade_render();
 }

@@ -5,11 +5,14 @@
 
 #define PLAYER_NAME_LEN 20
 
+#define PLAYER_FLAG_TALKING 0x1
+
 typedef struct
 {
 	char name[PLAYER_NAME_LEN];
 	int x, y, move_timer;
 	float x_lerp_a, y_lerp_a, x_lerp_b, y_lerp_b;
+	int flags;
 } player_t;
 
 extern player_t player;

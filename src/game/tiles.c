@@ -1,10 +1,11 @@
 #include "engine/util.h"
+#include "engine/config.h"
 
 #include "game/tiles.h"
 #include "game/player.h"
 
 uint16_t tiles_w, tiles_h;
-uint8_t tiles[TILES_H_MAX][TILES_W_MAX];
+tile_t tiles[TILES_H_MAX][TILES_W_MAX];
 
 void tiles_init(const char *path, int *player_spawn_x, int *player_spawn_y)
 {
@@ -14,22 +15,54 @@ void tiles_init(const char *path, int *player_spawn_x, int *player_spawn_y)
 	fread(&tiles_w, 2, 1, file);
 	fread(&tiles_h, 2, 1, file);
 	for (int y = 0; y < tiles_h; y++)
+	{
 		for (int x = 0; x < tiles_w; x++)
-			fread(tiles[y] + x, 1, 1, file);
+		{
+			tile_t *t = tiles[y] + x;
+
+			fread(&t->type, 1, 1, file);
+			fread(&t->col, 2, 1, file);
+		}
+	}
 	fclose(file);
 
-	debugf("LOADED TILEMAP (%d, %d)\n", tiles_w, tiles_h);
+	/* count player spawns */
+	int player_spawn_cnt = 0;
+	int *player_spawn_xs = malloc(0);
+	int *player_spawn_ys = malloc(0);
+
 	for (int y = 0; y < tiles_h; y++)
 	{
 		for (int x = 0; x < tiles_w; x++)
 		{
-			if (tiles[y][x] == TILE_TYPE_PLAYER_SPAWN)
-			{
-				*player_spawn_x = x;
-				*player_spawn_y = y;
-			}
+			if (tiles[y][x].type != TILE_TYPE_PLAYER_SPAWN)
+				continue;
+
+			player_spawn_cnt++;
+			player_spawn_xs = realloc(player_spawn_xs,
+					sizeof(*player_spawn_xs) *
+					player_spawn_cnt);
+			player_spawn_ys = realloc(player_spawn_ys,
+					sizeof(*player_spawn_ys) *
+					player_spawn_cnt);
+			player_spawn_xs[player_spawn_cnt - 1] = x;
+			player_spawn_ys[player_spawn_cnt - 1] = y;
 		}
 	}
+
+	assertf(player_spawn_cnt, "ERROR: Tilemap from '%s' doesn't "
+		"have any player spawns\n", path);
+
+	/* choose which one to spawn at */
+	int which_spawn = rand() % player_spawn_cnt;
+
+	*player_spawn_x = player_spawn_xs[which_spawn];
+	*player_spawn_y = player_spawn_ys[which_spawn];
+	free(player_spawn_xs);
+	free(player_spawn_ys);
+
+	debugf("LOADED TILEMAP '%s': [%d, %d] %d spawn(s)\n",
+	       path, tiles_w, tiles_h, player_spawn_cnt);
 }
 
 void tiles_render(void)
@@ -50,24 +83,9 @@ void tiles_render(void)
 			int xo = (x * TILE_SIZE) - x_off;
 			int yo = (y * TILE_SIZE) - y_off;
 
-			switch (tiles[y][x])
-			{
-			case TILE_TYPE_PLAYER_SPAWN:
-			case TILE_TYPE_FLOOR:
-				rdpq_fill_rect_border(xo, yo, xo + TILE_SIZE,
-						      yo + TILE_SIZE,
-						      0xA, 0x0, 0x4, 2);
-				break;
-
-			case TILE_TYPE_WALL:
-				rdpq_fill_rect_border(xo, yo, xo + TILE_SIZE,
-						      yo + TILE_SIZE,
-						      0x1, 0x15, 0x7, 2);
-				break;
-
-			default:
-				break;
-			}
+			rdpq_fill_rect_border(xo, yo, xo + TILE_SIZE,
+					      yo + TILE_SIZE,
+					      tiles[y][x].col, 2);
 		}
 	}
 }

@@ -26,6 +26,8 @@ static int (*update_funcs[SCENE_CNT])(const joypad_buttons_t,
 
 int main(void)
 {
+	srand(TICKS_READ());
+
 #if DEBUG
 	debug_initialize();
 #endif

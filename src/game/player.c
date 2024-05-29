@@ -71,16 +71,18 @@ void player_update(const joypad_inputs_t held)
 			    player_y_new != player_y_old + poslut[i][1])
 				continue;
 
-			if (tiles[player_y_old][player_x_old + poslut[i][0]]
+			if (tiles[player_y_old]
+			    [player_x_old + poslut[i][0]].type
 			    == TILE_TYPE_WALL)
 				player_x_new = player_x_old;
 
-			if (tiles[player_y_old + poslut[i][1]][player_x_old]
+			if (tiles[player_y_old + poslut[i][1]]
+			    [player_x_old].type
 			    == TILE_TYPE_WALL)
 				player_y_new = player_y_old;
 
 			if (tiles[player_y_old + poslut[i][1]]
-			    [player_x_old + poslut[i][0]]
+			    [player_x_old + poslut[i][0]].type
 			    == TILE_TYPE_WALL)
 			{
 				if (ABS(player_move_x) > ABS(player_move_y))
@@ -90,7 +92,7 @@ void player_update(const joypad_inputs_t held)
 			}
 		}
 
-		if (tiles[player_y_new][player_x_new] == TILE_TYPE_WALL)
+		if (tiles[player_y_new][player_x_new].type == TILE_TYPE_WALL)
 		{
 			player_x_new = player_x_old;
 			player_y_new = player_y_old;
@@ -120,11 +122,12 @@ void player_get_pos_lerped(float *x, float *y)
 
 void player_render(void)
 {
+	const uint16_t col = (0x06 << 11) | (0x11 << 6) |
+			     (0x15 << 1) | 1;
 	float x, y;
 
 	player_get_pos_lerped(&x, &y);
 	x = MAX(x, (DISPLAY_WIDTH >> 1) - (TILE_SIZE >> 1));
 	y = MAX(y, (DISPLAY_HEIGHT >> 1) - (TILE_SIZE >> 1));
-	rdpq_fill_rect_border(x, y, x + TILE_SIZE, y + TILE_SIZE,
-			      0x06, 0x11, 0x15, 2);
+	rdpq_fill_rect_border(x, y, x + TILE_SIZE, y + TILE_SIZE, col, 2);
 }

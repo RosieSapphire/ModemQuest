@@ -4,6 +4,7 @@
 #include <stdint.h>
 
 #define DIALOGUE_MAX 128
+#define DIALOGUE_LINE_MAX 256
 
 typedef struct
 {
@@ -15,7 +16,7 @@ typedef struct
 {
 	uint16_t x, y, dialogue_line_cnt;
 	dialogue_line_t dialogue[DIALOGUE_MAX];
-	int8_t dialogue_cur;
+	int8_t dialogue_cur, dialogue_char_cur;
 } npc_t;
 
 void npc_init(npc_t *n, const uint16_t x, const uint16_t y,

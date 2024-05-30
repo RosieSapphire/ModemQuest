@@ -26,8 +26,40 @@ void npc_player_interact(npc_t *n, joypad_buttons_t pressed)
 		return;
 	}
 
-	player.flags |= PLAYER_FLAG_TALKING;
-	n->dialogue_cur = 0;
+	if (n->dialogue_cur == -1)
+	{
+		player.flags |= PLAYER_FLAG_TALKING;
+		n->dialogue_cur = 0;
+		n->dialogue_char_cur = 0;
+		return;
+	}
+	int linelen = strlen(n->dialogue[n->dialogue_cur].line);
+
+	if (pressed.a)
+	{
+		if (n->dialogue_char_cur < linelen - 1)
+		{
+			n->dialogue_char_cur = linelen - 1;
+		}
+		else
+		{
+			if (++n->dialogue_cur >= n->dialogue_line_cnt)
+				goto exit_convo;
+
+			n->dialogue_char_cur = 0;
+			linelen = strlen(n->dialogue[
+					n->dialogue_cur].line);
+		}
+	}
+	n->dialogue_char_cur += (n->dialogue_char_cur < linelen);
+
+	if (n->dialogue_cur >= n->dialogue_line_cnt)
+	{
+exit_convo:
+		player.flags &= ~(PLAYER_FLAG_TALKING);
+		n->dialogue_cur = -1;
+		return;
+	}
 }
 
 void npc_dialogue_box_render(const npc_t *n)
@@ -50,9 +82,13 @@ void npc_dialogue_box_render(const npc_t *n)
 			    DISPLAY_WIDTH, DISPLAY_HEIGHT);
 	font_printf(18, DISPLAY_HEIGHT - (DISPLAY_HEIGHT >> 2) - 4, NULL,
 		    n->dialogue[n->dialogue_cur].speaker);
+
+	char line[DIALOGUE_LINE_MAX];
+
+	snprintf(line, n->dialogue_char_cur + 1,
+		 n->dialogue[n->dialogue_cur].line);
 	font_printf(18, DISPLAY_HEIGHT - (DISPLAY_HEIGHT >> 2) + 18,
 		    &(const rdpq_textparms_t) {
 		    .width = DISPLAY_WIDTH - (18 << 1),
-		    .wrap = WRAP_WORD,
-		    }, n->dialogue[n->dialogue_cur].line);
+		    .wrap = WRAP_WORD}, line);
 }

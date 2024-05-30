@@ -7,10 +7,19 @@
 
 #define PLAYER_FLAG_TALKING 0x1
 
+enum
+{
+	PLAYER_DIR_UP,
+	PLAYER_DIR_DOWN,
+	PLAYER_DIR_LEFT,
+	PLAYER_DIR_RIGHT,
+	PLAYER_DIR_CNT,
+};
+
 typedef struct
 {
 	char name[PLAYER_NAME_LEN];
-	int x, y, move_timer;
+	int x, y, dir, move_timer;
 	float x_lerp_a, y_lerp_a, x_lerp_b, y_lerp_b;
 	int flags;
 } player_t;

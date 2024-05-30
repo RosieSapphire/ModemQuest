@@ -42,7 +42,7 @@ void title_background_render(const float time_now)
 		);
 
 	rdpq_mode_blender(RDPQ_BLENDER((IN_RGB, IN_ALPHA,
-				       MEMORY_RGB, INV_MUX_ALPHA)));
+					MEMORY_RGB, INV_MUX_ALPHA)));
 	rdpq_set_prim_color(traces_color);
 
 	for (int i = 0; i < 3 * 3; i++)
@@ -61,7 +61,7 @@ void title_logo_render(void)
 {
 	rdpq_set_mode_standard();
 	rdpq_mode_blender(RDPQ_BLENDER((IN_RGB, IN_ALPHA,
-				       MEMORY_RGB, INV_MUX_ALPHA)));
+					MEMORY_RGB, INV_MUX_ALPHA)));
 	rdpq_sprite_blit(title_spr_logo, 60, 25, NULL);
 }
 

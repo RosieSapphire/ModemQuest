@@ -16,26 +16,28 @@ static void testarea_terminate(void *dummy)
 
 void testarea_init(void)
 {
-	int px, py;
-	tiles_init("rom:/testarea.map", &px, &py);
-	player_init(px, py);
-	npc_init(&testnpc, 8, 6, 2,
-	     	 (const dialogue_line_t[2]) {
-		 {
-		 .speaker = "Test NPC",
-		 .line = "This is just a test line",
-		 },
-		 {
-		 .speaker = "Test NPC",
-		 .line = "I really hope this works",
-		 },
-		 });
+	vec2i_t player_spawn_pos;
+
+	tiles_init("rom:/testarea.map", &player_spawn_pos);
+	player_init(player_spawn_pos);
+	npc_init(&testnpc, VEC2I(8, 6), 2,
+		 (const dialogue_line_t[2]) {
+		{
+			.speaker = "Test NPC",
+			.line = "This is just a test line",
+		},
+		{
+			.speaker = "Test NPC",
+			.line = "I really hope this works",
+		},
+		});
 	fade_state_setup(FADE_STATE_DISABLED);
 
 	is_exiting = 0;
 }
 
-int testarea_update(const joypad_buttons_t pressed, const joypad_inputs_t held)
+int testarea_update(const joypad_buttons_t pressed,
+		    const joypad_inputs_t held)
 {
 	npc_player_interact(&testnpc, pressed);
 	player_update(held);

@@ -3,6 +3,8 @@
 
 #include <stdint.h>
 
+#include "engine/vec2.h"
+
 #define DIALOGUE_MAX 128
 #define DIALOGUE_LINE_MAX 256
 
@@ -14,13 +16,13 @@ typedef struct
 
 typedef struct
 {
-	uint16_t x, y, dialogue_line_cnt;
+	vec2i_t pos;
+	uint16_t dialogue_line_cnt;
 	dialogue_line_t dialogue[DIALOGUE_MAX];
 	int8_t dialogue_cur, dialogue_char_cur;
 } npc_t;
 
-void npc_init(npc_t *n, const uint16_t x, const uint16_t y,
-	      const uint16_t dialogue_line_cnt,
+void npc_init(npc_t *n, const vec2i_t pos, const uint16_t dialogue_line_cnt,
 	      const dialogue_line_t *dialogue);
 void npc_player_interact(npc_t *n, joypad_buttons_t pressed);
 void npc_dialogue_box_render(const npc_t *n);

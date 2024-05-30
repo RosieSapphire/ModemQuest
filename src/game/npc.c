@@ -6,26 +6,52 @@
 #include "game/player.h"
 #include "game/npc.h"
 
-void npc_init(npc_t *n, const uint16_t x, const uint16_t y,
-	      const uint16_t dialogue_line_cnt,
+void npc_init(npc_t *n, const vec2i_t pos, const uint16_t dialogue_line_cnt,
 	      const dialogue_line_t *dialogue)
 {
-	n->x = x;
-	n->y = y;
+	n->pos = pos;
 	n->dialogue_line_cnt = dialogue_line_cnt;
 	for (int i = 0; i < dialogue_line_cnt; i++)
 		n->dialogue[i] = dialogue[i];
 	n->dialogue_cur = -1;
 }
 
+static int npc_dialogue_advance(npc_t *n, int pressed_a, int *linelen)
+{
+	if (!pressed_a)
+		return (0);
+
+	int last_char = *linelen - 1;
+
+	/* normally, dialogue prints char by char. This skips to the end */
+	if (n->dialogue_char_cur < last_char)
+	{
+		n->dialogue_char_cur = last_char;
+		return (0);
+	}
+
+	/* we've reached the end of a conversation */
+	if (++n->dialogue_cur >= n->dialogue_line_cnt)
+		return (1);
+
+	/* start on whatever dialogue line is active */
+	n->dialogue_char_cur = 0;
+	*linelen = strlen(n->dialogue[n->dialogue_cur].line);
+
+	return (0);
+}
+
 void npc_player_interact(npc_t *n, joypad_buttons_t pressed)
 {
-	if (player.x != n->x || player.y != n->y || player.move_timer != 0)
+	/* TODO: This needs to be changed */
+	if (player.pos.x != n->pos.x || player.pos.y != n->pos.y ||
+	    player.move_timer != 0)
 	{
 		n->dialogue_cur = -1;
 		return;
 	}
 
+	/* if this npc isn't currently talking, but we're trying to, talk */
 	if (n->dialogue_cur == -1)
 	{
 		player.flags |= PLAYER_FLAG_TALKING;
@@ -34,23 +60,12 @@ void npc_player_interact(npc_t *n, joypad_buttons_t pressed)
 		return;
 	}
 	int linelen = strlen(n->dialogue[n->dialogue_cur].line);
+	int should_exit = 0;
 
-	if (pressed.a)
-	{
-		if (n->dialogue_char_cur < linelen - 1)
-		{
-			n->dialogue_char_cur = linelen - 1;
-		}
-		else
-		{
-			if (++n->dialogue_cur >= n->dialogue_line_cnt)
-				goto exit_convo;
+	should_exit = npc_dialogue_advance(n, pressed.a, &linelen);
+	if (should_exit)
+		goto exit_convo;
 
-			n->dialogue_char_cur = 0;
-			linelen = strlen(n->dialogue[
-					n->dialogue_cur].line);
-		}
-	}
 	n->dialogue_char_cur += (n->dialogue_char_cur < linelen);
 
 	if (n->dialogue_cur >= n->dialogue_line_cnt)

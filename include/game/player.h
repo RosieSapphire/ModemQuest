@@ -3,9 +3,13 @@
 
 #include <libdragon.h>
 
+#include "engine/vec2.h"
+
 #define PLAYER_NAME_LEN 20
 
 #define PLAYER_FLAG_TALKING 0x1
+
+#define PLAYER_MOVE_TIMER_MAX 32
 
 enum
 {
@@ -19,16 +23,23 @@ enum
 typedef struct
 {
 	char name[PLAYER_NAME_LEN];
-	int x, y, dir, move_timer;
-	float x_lerp_a, y_lerp_a, x_lerp_b, y_lerp_b;
+	vec2i_t pos;
+	vec2f_t pos_lerp_a, pos_lerp_b;
+	int dir, move_timer;
 	int flags;
 } player_t;
 
 extern player_t player;
 
-void player_init(const int x, const int y);
-void player_update(const joypad_inputs_t held);
-void player_get_pos_lerped(float *x, float *y);
+/* base */
+void player_init(const vec2i_t pos);
+void player_get_pos_lerped(vec2f_t *v);
 void player_render(void);
+
+/* update */
+void player_update(const joypad_inputs_t held);
+void player_update_moving(const joypad_inputs_t held, vec2i_t *move);
+void player_update_collision(const vec2i_t pos_old, const vec2i_t move,
+			     vec2i_t *pos_new_out);
 
 #endif /* _GAME_PLAYER_H_ */

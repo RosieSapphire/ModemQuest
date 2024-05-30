@@ -42,8 +42,8 @@ int fade_update(const int should_switch)
 	};
 
 	fade_state_setup(fade_state ^ should_switch);
-	fade_radius = fade_radius_new[fade_state];
-	if ((fade_radius = MAX(fade_radius, FADE_RADIUS_MAX)) < 0)
+	fade_radius = MAX(fade_radius_new[fade_state], FADE_RADIUS_MAX);
+	if (fade_radius < 0)
 	{
 		fade_radius = 0;
 		return (1);

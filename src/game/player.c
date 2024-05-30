@@ -16,6 +16,7 @@ void player_init(const int x, const int y)
 	snprintf(player.name, 20, "Timmy");
 	player.x = x;
 	player.y = y;
+	player.dir = PLAYER_DIR_DOWN;
 	player.move_timer = 0;
 	player.x_lerp_a = x * TILE_SIZE;
 	player.y_lerp_a = y * TILE_SIZE;
@@ -106,6 +107,19 @@ void player_update(const joypad_inputs_t held)
 			return;
 		}
 
+		/* change direction */
+		int xdelta = player_x_new - player_x_old;
+		int ydelta = player_y_new - player_y_old;
+
+		if (ydelta > 0)
+			player.dir = PLAYER_DIR_DOWN;
+		if (ydelta < 0)
+			player.dir = PLAYER_DIR_UP;
+		if (xdelta > 0)
+			player.dir = PLAYER_DIR_RIGHT;
+		if (xdelta < 0)
+			player.dir = PLAYER_DIR_LEFT;
+
 		player.x = player_x_new;
 		player.y = player_y_new;
 		player.x_lerp_a = player_x_old * TILE_SIZE;
@@ -134,4 +148,37 @@ void player_render(void)
 	x = MAX(x, (DISPLAY_WIDTH >> 1) - (TILE_SIZE >> 1));
 	y = MAX(y, (DISPLAY_HEIGHT >> 1) - (TILE_SIZE >> 1));
 	rdpq_fill_rect_border(x, y, x + TILE_SIZE, y + TILE_SIZE, col, 2);
+
+	/* direction */
+	const int rects[PLAYER_DIR_CNT][4] = {
+		{ // up
+			x + (TILE_SIZE >> 1) - 1,
+			y + 0,
+			x + (TILE_SIZE >> 1) + 1,
+			y + 6,
+		},
+		{ // down
+			x + (TILE_SIZE >> 1) - 1,
+			y + TILE_SIZE - 6,
+			x + (TILE_SIZE >> 1) + 1,
+			y + TILE_SIZE,
+		},
+		{ // left
+			x + 0,
+			y + (TILE_SIZE >> 1) - 1,
+			x + 6,
+			y + (TILE_SIZE >> 1) + 1,
+		},
+		{ // right
+			x + TILE_SIZE - 6,
+			y + (TILE_SIZE >> 1) - 1,
+			x + TILE_SIZE,
+			y + (TILE_SIZE >> 1) + 1,
+		},
+	};
+
+	rdpq_fill_rectangle(rects[player.dir][0],
+			    rects[player.dir][1],
+			    rects[player.dir][2],
+			    rects[player.dir][3]);
 }

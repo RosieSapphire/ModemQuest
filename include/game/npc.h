@@ -8,6 +8,13 @@
 #define DIALOGUE_MAX 128
 #define DIALOGUE_LINE_MAX 256
 
+enum
+{
+	NPC_STATE_IDLE,
+	NPC_STATE_TALKING,
+	NPC_STATE_CNT,
+};
+
 typedef struct
 {
 	const char *speaker;
@@ -19,6 +26,7 @@ typedef struct
 	vec2i_t pos;
 	uint16_t dialogue_line_cnt;
 	dialogue_line_t dialogue[DIALOGUE_MAX];
+	uint8_t state;
 	int8_t dialogue_cur, dialogue_char_cur;
 } npc_t;
 

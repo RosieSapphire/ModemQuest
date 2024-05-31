@@ -13,18 +13,15 @@ void npc_init(npc_t *n, const vec2i_t pos, const uint16_t dialogue_line_cnt,
 	n->dialogue_line_cnt = dialogue_line_cnt;
 	for (int i = 0; i < dialogue_line_cnt; i++)
 		n->dialogue[i] = dialogue[i];
-	n->dialogue_cur = -1;
+	n->state = NPC_STATE_IDLE;
 }
 
-static int npc_dialogue_advance(npc_t *n, int pressed_a, int *linelen)
+static int npc_dialogue_skip(npc_t *n, int *linelen)
 {
-	if (!pressed_a)
-		return (0);
-
 	int last_char = *linelen - 1;
 
 	/* normally, dialogue prints char by char. This skips to the end */
-	if (n->dialogue_char_cur < last_char)
+	if (n->dialogue_char_cur < last_char && n->dialogue_char_cur != 0)
 	{
 		n->dialogue_char_cur = last_char;
 		return (0);
@@ -43,38 +40,38 @@ static int npc_dialogue_advance(npc_t *n, int pressed_a, int *linelen)
 
 void npc_player_interact(npc_t *n, joypad_buttons_t pressed)
 {
-	/* TODO: This needs to be changed */
-	if (player.pos.x != n->pos.x || player.pos.y != n->pos.y ||
-	    player.move_timer != 0)
-	{
-		n->dialogue_cur = -1;
-		return;
-	}
+	const vec2i_t player_dist = VEC2I_SUB(player.pos, n->pos);
+	int player_can_interact =
+		(ABS(player_dist.x) + ABS(player_dist.y)) == 1 &&
+		player.move_timer == 0;
+	int n_state_last = n->state;
 
-	/* if this npc isn't currently talking, but we're trying to, talk */
-	if (n->dialogue_cur == -1)
+	/* starting an interaction */
+	if (player_can_interact && pressed.a && n->state != NPC_STATE_TALKING)
 	{
 		player.flags |= PLAYER_FLAG_TALKING;
+		n->state = NPC_STATE_TALKING;
 		n->dialogue_cur = 0;
 		n->dialogue_char_cur = 0;
-		return;
 	}
+
+	if (n->state != NPC_STATE_TALKING)
+		return;
+
 	int linelen = strlen(n->dialogue[n->dialogue_cur].line);
 	int should_exit = 0;
 
-	should_exit = npc_dialogue_advance(n, pressed.a, &linelen);
+	if (pressed.a && n_state_last == NPC_STATE_TALKING)
+		should_exit = npc_dialogue_skip(n, &linelen);
+
 	if (should_exit)
-		goto exit_convo;
-
-	n->dialogue_char_cur += (n->dialogue_char_cur < linelen);
-
-	if (n->dialogue_cur >= n->dialogue_line_cnt)
 	{
-exit_convo:
 		player.flags &= ~(PLAYER_FLAG_TALKING);
+		n->state = NPC_STATE_IDLE;
 		n->dialogue_cur = -1;
 		return;
 	}
+	n->dialogue_char_cur += (n->dialogue_char_cur < linelen);
 }
 
 void npc_dialogue_box_render(const npc_t *n)
@@ -82,7 +79,7 @@ void npc_dialogue_box_render(const npc_t *n)
 	const color_t lighter = RGBA32(0x18, 0x30, 0x48, 0x7F);
 	const color_t darker = RGBA32(0x18 >> 1, 0x30 >> 1, 0x48 >> 1, 0x7F);
 
-	if (n->dialogue_cur == -1)
+	if (n->state != NPC_STATE_TALKING)
 		return;
 
 	rdpq_set_mode_standard();

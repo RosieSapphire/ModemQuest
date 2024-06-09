@@ -1,5 +1,6 @@
 #include "util.h"
 #include "config.h"
+#include "vec2.h"
 
 #include "game/tiles.h"
 #include "game/player.h"

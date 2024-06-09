@@ -5,5 +5,3 @@ filesystem/
 *.json
 *.z64
 Story.md
-*.toml
-tools/

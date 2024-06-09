@@ -76,8 +76,9 @@ void npc_player_interact(npc_t *n, joypad_buttons_t pressed)
 
 void npc_dialogue_box_render(const npc_t *n)
 {
-	const color_t lighter = RGBA32(0x18, 0x30, 0x48, 0x7F);
-	const color_t darker = RGBA32(0x18 >> 1, 0x30 >> 1, 0x48 >> 1, 0x7F);
+	const uint8_t alpha = 0xC0;
+	const color_t lighter = RGBA32(0x18, 0x30, 0x48, alpha);
+	const color_t darker = RGBA32(0x18 >> 1, 0x30 >> 1, 0x48 >> 1, alpha);
 
 	if (n->state != NPC_STATE_TALKING)
 		return;

@@ -20,18 +20,26 @@ void testarea_init(void)
 
 	tiles_init("rom:/testarea.map", &player_spawn_pos);
 	player_init(player_spawn_pos);
-	npc_init(&testnpc, VEC2I(8, 6), 2,
-		 (const dialogue_line_t[2]) {
+	npc_init(&testnpc, VEC2I(8, 6), 4,
+		 (const dialogue_line_t[4]) {
 		{
-			.speaker = "Test NPC",
-			.line = "This is just a test line",
+			.speaker = "Tupac",
+			.line = "First off, fuck yo bitch in the clique you claim",
 		},
 		{
-			.speaker = "Test NPC",
-			.line = "I really hope this works",
+			.speaker = "Tupac",
+			.line = "West Side, when we ride, come equipped with game",
+		},
+		{
+			.speaker = "Tupac",
+			.line = "You claimed to be a player, but I fucked your wife",
+		},
+		{
+			.speaker = "Tupac",
+			.line = "We bust on Bad Boys, niggas fucked for life",
 		},
 		});
-	fade_state_setup(FADE_STATE_DISABLED);
+	fade_state_setup(FADE_STATE_IN);
 
 	is_exiting = 0;
 }

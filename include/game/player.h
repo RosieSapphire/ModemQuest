@@ -3,7 +3,7 @@
 
 #include <libdragon.h>
 
-#include "engine/vec2.h"
+#include "vec2.h"
 
 #define PLAYER_NAME_LEN 20
 

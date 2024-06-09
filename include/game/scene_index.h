@@ -1,7 +1,7 @@
 #ifndef _GAME_SCENES_H_
 #define _GAME_SCENES_H_
 
-#include <stdint.h>
+#include "types.h"
 
 enum
 {
@@ -11,6 +11,6 @@ enum
 	SCENE_CNT,
 };
 
-extern uint8_t scene_index;
+extern u8 scene_index;
 
 #endif /* _GAME_SCENES_H_ */

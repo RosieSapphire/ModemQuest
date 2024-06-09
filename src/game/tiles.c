@@ -1,10 +1,10 @@
-#include "engine/util.h"
-#include "engine/config.h"
+#include "util.h"
+#include "config.h"
 
 #include "game/tiles.h"
 #include "game/player.h"
 
-uint16_t tiles_w, tiles_h;
+u16 tiles_w, tiles_h;
 tile_t tiles[TILES_H_MAX][TILES_W_MAX];
 
 static int tiles_init_spawn_pos(vec2i_t *spawnpos)

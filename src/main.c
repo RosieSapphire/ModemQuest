@@ -1,8 +1,9 @@
 #include <libdragon.h>
 
+#include "config.h"
+
 #include "debug/debug.h"
 
-#include "engine/config.h"
 #include "engine/n64.h"
 #include "engine/font.h"
 #include "engine/fade.h"

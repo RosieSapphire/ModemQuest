@@ -1,18 +1,13 @@
 #include <libdragon.h>
 
-#include "engine/util.h"
-
-float lerpf(const float a, const float b, const float t)
-{
-	return (a + (b - a) * t);
-}
+#include "util.h"
 
 void rdpq_fill_rect_border(const int x0, const int y0,
-			   const int x1, const int y1, const uint16_t col,
+			   const int x1, const int y1, const u16 col,
 			   const uint8_t thick)
 {
-	const uint16_t lighter16 = col;
-	const uint16_t darker16 = (((col & 0xF800) >> 1) & 0xF800) |
+	const u16 lighter16 = col;
+	const u16 darker16 = (((col & 0xF800) >> 1) & 0xF800) |
 				  (((col & 0x07C0) >> 1) & 0x07C0) |
 				  (((col & 0x003E) >> 1) & 0x003E) | 1;
 	const color_t lighter = color_from_packed16(lighter16);

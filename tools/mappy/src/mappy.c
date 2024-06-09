@@ -8,6 +8,8 @@
 #include <GLFW/glfw3.h>
 #include <cglm/cglm.h>
 
+#include "types.h"
+
 /* Nuklear */
 #define NK_VERT_BUF_MAX (512 * 1024)
 #define NK_ELEM_BUF_MAX (128 * 1024)
@@ -39,7 +41,7 @@
 #define TILES_H_DEFAULT 10
 
 static unsigned int tile_vao, tile_vbo, tile_ebo;
-static const uint16_t tile_indis[6] = {0, 2, 1, 2, 3, 1};
+static const u16 tile_indis[6] = {0, 2, 1, 2, 3, 1};
 
 static mat4 mat_proj;
 
@@ -48,8 +50,8 @@ static int scroll_x, scroll_y, is_zoomed;
 static tile_t tile_selected = {TILE_TYPE_FLOOR, 0xFFFF};
 static struct nk_colorf _tile_selected_colf = {1.0f, 1.0f, 1.0f, 1.0f};
 tile_t tiles[TILES_H_MAX][TILES_W_MAX];
-uint16_t tiles_w;
-uint16_t tiles_h;
+u16 tiles_w;
+u16 tiles_h;
 
 static GLFWwindow *glwin = NULL;
 static struct nk_context *nkctx;
@@ -227,18 +229,18 @@ static void tiles_resize(const int w_new, const int h_new)
 	tiles_h = h_new;
 }
 
-static void fwrite_ef16(const uint16_t *ptr, FILE *file)
+static void fwrite_ef16(const u16 *ptr, FILE *file)
 {
-	uint16_t flip = ((*ptr & 0x00FF) << 8) | ((*ptr & 0xFF00) >> 8);
+	u16 flip = ((*ptr & 0x00FF) << 8) | ((*ptr & 0xFF00) >> 8);
 
 	fwrite(&flip, 2, 1, file);
 }
 
-static void fread_ef16(uint16_t *ptr, FILE *file)
+static void fread_ef16(u16 *ptr, FILE *file)
 {
 	fread(ptr, 2, 1, file);
 
-	uint16_t flip = ((*ptr & 0x00FF) << 8) | ((*ptr & 0xFF00) >> 8);
+	u16 flip = ((*ptr & 0x00FF) << 8) | ((*ptr & 0xFF00) >> 8);
 
 	*ptr = flip;
 }
@@ -531,8 +533,8 @@ int main(const int argc, const char **argv)
 				scroll_y = -128;
 			}
 
-			tiles_w = (uint16_t)tiles_w_prop;
-			tiles_h = (uint16_t)tiles_h_prop;
+			tiles_w = (u16)tiles_w_prop;
+			tiles_h = (u16)tiles_h_prop;
 			tiles_resize(tiles_w, tiles_h);
 		}
 		nk_end(nkctx);

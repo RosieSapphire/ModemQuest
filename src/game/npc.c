@@ -1,12 +1,14 @@
 #include <libdragon.h>
 
-#include "engine/config.h"
+#include "util.h"
+#include "config.h"
+
 #include "engine/font.h"
 
 #include "game/player.h"
 #include "game/npc.h"
 
-void npc_init(npc_t *n, const vec2i_t pos, const uint16_t dialogue_line_cnt,
+void npc_init(npc_t *n, const vec2i_t pos, const u16 dialogue_line_cnt,
 	      const dialogue_line_t *dialogue)
 {
 	n->pos = pos;
@@ -76,7 +78,7 @@ void npc_player_interact(npc_t *n, joypad_buttons_t pressed)
 
 void npc_dialogue_box_render(const npc_t *n)
 {
-	const uint8_t alpha = 0xC0;
+	const u8 alpha = 0xC0;
 	const color_t lighter = RGBA32(0x18, 0x30, 0x48, alpha);
 	const color_t darker = RGBA32(0x18 >> 1, 0x30 >> 1, 0x48 >> 1, alpha);
 

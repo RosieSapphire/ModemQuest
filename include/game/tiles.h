@@ -1,9 +1,8 @@
 #ifndef _GAME_TILES_H_
 #define _GAME_TILES_H_
 
-#include <stdint.h>
-
-#include "engine/vec2.h"
+#include "types.h"
+#include "vec2.h"
 
 #define TILES_W_MAX 256
 #define TILES_H_MAX 256
@@ -19,11 +18,11 @@ enum
 
 typedef struct
 {
-	uint8_t type;
-	uint16_t col;
+	u8 type;
+	u16 col;
 } tile_t;
 
-extern uint16_t tiles_w, tiles_h;
+extern u16 tiles_w, tiles_h;
 extern tile_t tiles[TILES_H_MAX][TILES_W_MAX];
 
 void tiles_init(const char *path, vec2i_t *spawnpos);

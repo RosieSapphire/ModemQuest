@@ -1,9 +1,10 @@
 #include <libdragon.h>
 
-#include "engine/config.h"
+#include "config.h"
+
 #include "engine/n64.h"
 
-uint64_t n64_ticks_last, n64_ticks_now, n64_ticks_accum;
+u64 n64_ticks_last, n64_ticks_now, n64_ticks_accum;
 
 void n64_init(void)
 {
@@ -28,7 +29,7 @@ void n64_init(void)
 
 void n64_update_ticks_accum(void)
 {
-	uint64_t ticks_frame;
+	u64 ticks_frame;
 
 	n64_ticks_now = timer_ticks();
 	ticks_frame = TICKS_DISTANCE(n64_ticks_last, n64_ticks_now);

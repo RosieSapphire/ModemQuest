@@ -1,5 +1,6 @@
+#include "util.h"
+
 #include "engine/fade.h"
-#include "engine/util.h"
 
 #include "game/scene_index.h"
 #include "game/title.h"

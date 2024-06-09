@@ -1,3 +1,5 @@
+#include "util.h"
+
 #include "game/tiles.h"
 #include "game/player.h"
 

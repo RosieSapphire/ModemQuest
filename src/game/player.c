@@ -1,8 +1,8 @@
 #include <stdio.h>
 #include <math.h>
 
-#include "engine/config.h"
-#include "engine/util.h"
+#include "config.h"
+#include "util.h"
 
 #include "game/tiles.h"
 #include "game/player.h"
@@ -30,7 +30,7 @@ void player_get_pos_lerped(vec2f_t *v)
 
 void player_render(void)
 {
-	const uint16_t col = (0x06 << 11) | (0x11 << 6) |
+	const u16 col = (0x06 << 11) | (0x11 << 6) |
 			     (0x15 << 1) | 1;
 	vec2f_t pos;
 

@@ -1,7 +1,9 @@
 #include <libdragon.h>
+#include <t3d/t3dmath.h>
 
-#include "engine/config.h"
-#include "engine/util.h"
+#include "config.h"
+#include "util.h"
+
 #include "engine/fade.h"
 #include "engine/font.h"
 #include "engine/n64.h"
@@ -36,9 +38,9 @@ void title_background_render(const float time_now)
 	const float traces_fade = (cosf(time_now * 3.14159f) + 1.0f) * 0.5f;
 	const color_t traces_color =
 		RGBA16(
-			lerpf(0.588f, 0.878f, traces_fade) * 31,
-			lerpf(0.263f, 0.431f, traces_fade) * 31,
-			lerpf(0.094f, 0.212f, traces_fade) * 31, 0x1
+			t3d_lerp(0.588f, 0.878f, traces_fade) * 31,
+			t3d_lerp(0.263f, 0.431f, traces_fade) * 31,
+			t3d_lerp(0.094f, 0.212f, traces_fade) * 31, 0x1
 		);
 
 	rdpq_mode_blender(RDPQ_BLENDER((IN_RGB, IN_ALPHA,

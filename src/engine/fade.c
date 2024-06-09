@@ -1,7 +1,8 @@
 #include <libdragon.h>
 
-#include "engine/config.h"
-#include "engine/util.h"
+#include "config.h"
+#include "util.h"
+
 #include "engine/fade.h"
 
 #define FADE_SURF_WIDTH 64

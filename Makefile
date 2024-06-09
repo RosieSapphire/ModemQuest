@@ -2,6 +2,7 @@ DEBUG     := 0
 BUILD_DIR := build
 
 include $(N64_INST)/include/n64.mk
+include $(T3D_INST)/t3d.mk
 
 MKFONT_FLAGS ?=
 MKSPRITE_FLAGS ?=
@@ -63,10 +64,11 @@ filesystem/%.map: assets/%.map
 clean:
 	rm -rf $(BUILD_DIR) $(ROM) filesystem/
 
-BETTY_IGNORE := --ignore=PREFER_KERNEL_TYPES,CONSTANT_COMPARISON
+BETTY_IGNORE := --ignore=CONSTANT_COMPARISON
 BETTY_FLAGS  := -strict -subjective --show-types \
 		--allow-global-variables $(BETTY_IGNORE)
-BETTY_SCAN   := $(filter-out include/debug/debug.h,$(H_FILES)) \
+BETTY_SCAN   := $(filter-out include/debug/debug.h include/types.h,\
+		$(H_FILES)) \
 		$(filter-out src/debug/debug.c,$(C_FILES))
 
 betty:

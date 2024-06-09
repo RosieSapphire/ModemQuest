@@ -1,7 +1,7 @@
 #ifndef _ENGINE_VEC2_H_
 #define _ENGINE_VEC2_H_
 
-#include "engine/util.h"
+#include <t3d/t3dmath.h>
 
 typedef struct
 {
@@ -24,7 +24,7 @@ typedef struct
 #define VEC2F_SCALE(X, S) VEC2F(X.x * S, X.y * S)
 #define VEC2F_ROUND(X) VEC2F(roundf(X.x), roundf(X.y))
 #define VEC2F_LERP(A, B, T) VEC2F( \
-		lerpf(A.x, B.x, T), \
-		lerpf(A.y, B.y, T))
+		t3d_lerp(A.x, B.x, T), \
+		t3d_lerp(A.y, B.y, T))
 
 #endif /* _ENGINE_VEC2_H_ */

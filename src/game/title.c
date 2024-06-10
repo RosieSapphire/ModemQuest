@@ -1,4 +1,5 @@
 #include "util.h"
+#include "vec2.h"
 
 #include "engine/fade.h"
 
@@ -11,7 +12,7 @@ sprite_t *title_spr_traces;
 sprite_t *title_spr_gradient;
 
 /* variables */
-int title_bg_pos[2];
+vec2i title_bg_pos;
 int is_exiting;
 
 static void title_terminate(UNUSED void *dummy)

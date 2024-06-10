@@ -7,7 +7,7 @@
 
 #define FADE_SURF_WIDTH 64
 #define FADE_SURF_HEIGHT 64
-#define FADE_SURF_PIXEL_CNT (DISPLAY_WIDTH * DISPLAY_HEIGHT)
+#define FADE_SURF_PIXEL_CNT (DSP_WID * DSP_HEI)
 
 #define FADE_RADIUS_MAX 420
 #define FADE_SPEED 16
@@ -57,15 +57,14 @@ int fade_update(const int should_switch)
 
 void fade_render(void)
 {
-	if (fade_radius == FADE_RADIUS_MAX ||
-	    fade_state == FADE_STATE_DISABLED)
+	if (fade_radius == FADE_RADIUS_MAX || fade_state == FADE_STATE_DISABLED)
 		return;
 
 	const int rect[4] = {
-		-(fade_radius >> 1) + (DISPLAY_WIDTH >> 1),
-		-(fade_radius >> 1) + (DISPLAY_HEIGHT >> 1),
-		 (fade_radius >> 1) + (DISPLAY_WIDTH >> 1),
-		 (fade_radius >> 1) + (DISPLAY_HEIGHT >> 1),
+		-(fade_radius >> 1) + (DSP_WID >> 1),
+		-(fade_radius >> 1) + (DSP_HEI >> 1),
+		 (fade_radius >> 1) + (DSP_WID >> 1),
+		 (fade_radius >> 1) + (DSP_HEI >> 1),
 	};
 
 	if (!fade_radius)
@@ -82,10 +81,10 @@ void fade_render(void)
 				      0, 0, FADE_SURF_WIDTH, FADE_SURF_HEIGHT);
 
 	rdpq_set_mode_fill(RGBA16(0, 0, 0, 1));
-	rdpq_fill_rectangle(0, 0, rect[0], DISPLAY_HEIGHT);
-	rdpq_fill_rectangle(rect[2], 0, DISPLAY_WIDTH, DISPLAY_HEIGHT);
+	rdpq_fill_rectangle(0, 0, rect[0], DSP_HEI);
+	rdpq_fill_rectangle(rect[2], 0, DSP_WID, DSP_HEI);
 	rdpq_fill_rectangle(rect[0], 0, rect[2], rect[1]);
-	rdpq_fill_rectangle(rect[0], rect[3], rect[2], DISPLAY_HEIGHT);
+	rdpq_fill_rectangle(rect[0], rect[3], rect[2], DSP_HEI);
 
 	return;
 

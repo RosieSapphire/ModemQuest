@@ -33,8 +33,8 @@ void title_background_render(const float time_now)
 			.s.repeats = REPEAT_INFINITE,
 			.s.mirror = MIRROR_REPEAT,
 			});
-	rdpq_texture_rectangle(TILE0, 0, 0, DISPLAY_WIDTH,
-			       DISPLAY_HEIGHT, time_now * 512, 0);
+	rdpq_texture_rectangle(TILE0, 0, 0, DSP_WID,
+			       DSP_HEI, time_now * 512, 0);
 	const float traces_fade = (cosf(time_now * 3.14159f) + 1.0f) * 0.5f;
 	const color_t traces_color =
 		RGBA16(
@@ -52,7 +52,7 @@ void title_background_render(const float time_now)
 		int x = title_bg_pos[0] + 256 * (i % 3);
 		int y = title_bg_pos[1] + 256 * (i / 3);
 
-		if (x >= DISPLAY_WIDTH || y >= DISPLAY_HEIGHT)
+		if (x >= DSP_WID || y >= DSP_HEI)
 			continue;
 
 		rdpq_sprite_blit(title_spr_traces, x, y, NULL);
@@ -70,9 +70,9 @@ void title_logo_render(void)
 void title_credits_render(void)
 {
 	rdpq_set_mode_standard();
-	font_printf(0, DISPLAY_HEIGHT - 42, &(const rdpq_textparms_t) {
+	font_printf(0, DSP_HEI - 42, &(const rdpq_textparms_t) {
 				.align = ALIGN_CENTER,
-				.width = DISPLAY_WIDTH,
+				.width = DSP_WID,
 			}, "A Homebrew N64 Original by\n"
 			"Aeryk Ressler & Rosie Sapphire");
 }

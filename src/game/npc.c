@@ -8,10 +8,10 @@
 #include "game/player.h"
 #include "game/npc.h"
 
-void npc_init(npc_t *n, const vec2i_t pos, const u16 dialogue_line_cnt,
+void npc_init(npc_t *n, const int pos[2], const u16 dialogue_line_cnt,
 	      const dialogue_line_t *dialogue)
 {
-	n->pos = pos;
+	VEC2_COPY(n->pos, pos);
 	n->dialogue_line_cnt = dialogue_line_cnt;
 	for (int i = 0; i < dialogue_line_cnt; i++)
 		n->dialogue[i] = dialogue[i];
@@ -42,9 +42,12 @@ static int npc_dialogue_skip(npc_t *n, int *linelen)
 
 void npc_player_interact(npc_t *n, joypad_buttons_t pressed)
 {
-	const vec2i_t player_dist = VEC2I_SUB(player.pos, n->pos);
+	int player_dist[2];
+
+	VEC2_SUB(player_dist, player.pos, n->pos);
+
 	int player_can_interact =
-		(ABS(player_dist.x) + ABS(player_dist.y)) == 1 &&
+		(ABS(player_dist[0]) + ABS(player_dist[1])) == 1 &&
 		player.move_timer == 0;
 	int n_state_last = n->state;
 
@@ -90,20 +93,19 @@ void npc_dialogue_box_render(const npc_t *n)
 	rdpq_mode_blender(RDPQ_BLENDER((FOG_RGB, FOG_ALPHA,
 					MEMORY_RGB, INV_MUX_ALPHA)));
 	rdpq_set_fog_color(lighter);
-	rdpq_fill_rectangle(18, DISPLAY_HEIGHT - (DISPLAY_HEIGHT >> 2) - 20,
-			    18 + 80, DISPLAY_HEIGHT - (DISPLAY_HEIGHT >> 2));
+	rdpq_fill_rectangle(18, DSP_HEI - (DSP_HEI >> 2) - 20,
+			    18 + 80, DSP_HEI - (DSP_HEI >> 2));
 	rdpq_set_fog_color(darker);
-	rdpq_fill_rectangle(0, DISPLAY_HEIGHT - (DISPLAY_HEIGHT >> 2),
-			    DISPLAY_WIDTH, DISPLAY_HEIGHT);
-	font_printf(18, DISPLAY_HEIGHT - (DISPLAY_HEIGHT >> 2) - 4, NULL,
+	rdpq_fill_rectangle(0, DSP_HEI - (DSP_HEI >> 2), DSP_WID, DSP_HEI);
+	font_printf(18, DSP_HEI - (DSP_HEI >> 2) - 4, NULL,
 		    n->dialogue[n->dialogue_cur].speaker);
 
 	char line[DIALOGUE_LINE_MAX];
 
 	snprintf(line, n->dialogue_char_cur + 1,
 		 n->dialogue[n->dialogue_cur].line);
-	font_printf(18, DISPLAY_HEIGHT - (DISPLAY_HEIGHT >> 2) + 18,
+	font_printf(18, DSP_HEI - (DSP_HEI >> 2) + 18,
 		    &(const rdpq_textparms_t) {
-		    .width = DISPLAY_WIDTH - (18 << 1),
+		    .width = DSP_WID - (18 << 1),
 		    .wrap = WRAP_WORD}, line);
 }

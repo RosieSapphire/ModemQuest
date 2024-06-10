@@ -6,7 +6,7 @@
 #include "game/scene_index.h"
 #include "game/player.h"
 #include "game/npc.h"
-#include "game/tiles.h"
+#include "game/tilemap.h"
 #include "game/testarea.h"
 
 static int is_exiting;
@@ -17,27 +17,28 @@ static void testarea_terminate(void *dummy)
 
 void testarea_init(void)
 {
-	vec2i_t player_spawn_pos;
+	vec2i player_spawn_pos;
 
-	tiles_init("rom:/testarea.map", &player_spawn_pos);
+	tilemap_init("rom:/testarea.map", player_spawn_pos);
 	player_init(player_spawn_pos);
-	npc_init(&testnpc, VEC2I(8, 6), 4,
+	debugf("%d, %d\n", player_spawn_pos[0], player_spawn_pos[1]);
+	npc_init(&testnpc, (int[2]) {8, 6}, 4,
 		 (const dialogue_line_t[4]) {
 		{
-			.speaker = "Tupac",
-			.line = "First off, fuck yo bitch in the clique you claim",
+		.speaker = "Tupac",
+		.line = "First off, fuck yo bitch in the clique you claim",
 		},
 		{
-			.speaker = "Tupac",
-			.line = "West Side, when we ride, come equipped with game",
+		.speaker = "Tupac",
+		.line = "West Side, when we ride, come equipped with game",
 		},
 		{
-			.speaker = "Tupac",
-			.line = "You claimed to be a player, but I fucked your wife",
+		.speaker = "Tupac",
+		.line = "You claimed to be a player, but I fucked your wife",
 		},
 		{
-			.speaker = "Tupac",
-			.line = "We bust on Bad Boys, niggas fucked for life",
+		.speaker = "Tupac",
+		.line = "We bust on Bad Boys, niggas fucked for life",
 		},
 		});
 	fade_state_setup(FADE_STATE_IN);
@@ -66,7 +67,7 @@ int testarea_update(const joypad_buttons_t pressed,
 void testarea_render(void)
 {
 	rdpq_clear(RGBA16(0, 0, 0, 1));
-	tiles_render();
+	tilemap_render();
 	player_render();
 	npc_dialogue_box_render(&testnpc);
 	fade_render();

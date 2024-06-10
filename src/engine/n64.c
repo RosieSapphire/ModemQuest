@@ -9,8 +9,7 @@ u64 n64_ticks_last, n64_ticks_now, n64_ticks_accum;
 void n64_init(void)
 {
 	/* libdragon */
-	display_init(DISPLAY_RESOLUTION, DISPLAY_BITDEPTH,
-		     DISPLAY_BUFFER_CNT, DISPLAY_GAMMA, DISPLAY_FILTER);
+	display_init(DSP_RES, DSP_DEP, DSP_BUF_CNT, DSP_GAM, DSP_FIL);
 	joypad_init();
 	timer_init();
 	rdpq_init();

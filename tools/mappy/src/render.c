@@ -102,25 +102,19 @@ static void render_rect_buffers_init(void)
 	glBindVertexArray(0);
 }
 
-void render_init(const char *outpath)
+void render_init(void)
 {
 	glewExperimental = 1;
 	glewInit();
-	glViewport(0, 0, WIN_WID, WIN_HEI);
-	glm_ortho(0, WIN_WID, WIN_HEI, 0, -1, 1, mat_proj);
+	glViewport(0, 0, glwin_w, glwin_h);
+	glm_ortho(0, glwin_w, glwin_h, 0, -1, 1, mat_proj);
 	render_rect_buffers_init();
 	render_shader_compile();
 
-	/* Render Mode */
 	glDepthFunc(GL_LESS);
 	glEnable(GL_CULL_FACE);
 	glFrontFace(GL_CCW);
 	glCullFace(GL_BACK);
-
-	/* Nuklear GUI */
-	struct nk_font_atlas *atlas;
-
-	nuklear_inst_init();
 }
 
 void render_rect(const int x0, const int y0, const int x1, const int y1,

@@ -5,16 +5,20 @@
 #include "glwin.h"
 
 GLFWwindow *glwin;
+int glwin_w, glwin_h;
 
 void glwin_init(const char *outpath)
 {
+	glwin_w = WIN_WID_DEFAULT;
+	glwin_h = WIN_HEI_DEFAULT;
+
 	glfwInit();
 
 	char winname[256];
 	GLFWmonitor *mon = glfwGetPrimaryMonitor();
 	const GLFWvidmode *vm = glfwGetVideoMode(mon);
-	int winx = (vm->width >> 1)  - (WIN_WID >> 1);
-	int winy = (vm->height >> 1)  - (WIN_HEI >> 1);
+	int winx = (vm->width  >> 1) - (glwin_w >> 1);
+	int winy = (vm->height >> 1) - (glwin_h >> 1);
 
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
@@ -24,9 +28,8 @@ void glwin_init(const char *outpath)
 	glfwWindowHint(GLFW_GREEN_BITS, vm->greenBits);
 	glfwWindowHint(GLFW_BLUE_BITS, vm->blueBits);
 	glfwWindowHint(GLFW_REFRESH_RATE, vm->refreshRate);
-	glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 	snprintf(winname, 64, "Mappy the Map Editor (%s)", outpath);
-	glwin = glfwCreateWindow(WIN_WID, WIN_HEI, winname, NULL, NULL);
+	glwin = glfwCreateWindow(glwin_w, glwin_h, winname, NULL, NULL);
 	glfwSetWindowPos(glwin, winx, winy);
 	glfwMakeContextCurrent(glwin);
 }

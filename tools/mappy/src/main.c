@@ -20,11 +20,26 @@ static void errorf(const char *fmt, ...)
 	exit(EXIT_FAILURE);
 }
 
-static void update(const char *outpath, const glwin_input_t *inp,
-		   int *mx_tile, int *my_tile, const float dt)
+static void update(glwin_input_t *inp, int *mx_tile,
+		   int *my_tile, const float dt)
 {
-	tilemap_get_mouse_tile_pos(inp, mx_tile, my_tile);
-	tilemap_update(inp, *mx_tile, *my_tile, outpath, dt);
+	int mxt, myt;
+
+	glwin_input_poll(inp);
+	mxt = (inp->mx_now + tilemap_pan_x) / TILE_SIZE;
+	myt = (inp->my_now + tilemap_pan_y) / TILE_SIZE;
+	if (mxt < 0)
+		mxt = 0;
+	if (mxt >= tilemap_w)
+		mxt = tilemap_w - 1;
+	if (myt < 0)
+		myt = 0;
+	if (myt >= tilemap_h)
+		myt = tilemap_h - 1;
+	tilemap_update(inp, mxt, myt, dt);
+
+	*mx_tile = mxt;
+	*my_tile = myt;
 }
 
 int main(const int argc, const char **argv)
@@ -35,9 +50,9 @@ int main(const int argc, const char **argv)
 	const char *outpath = argc == 2 ? argv[1] : "untitled.map";
 
 	glwin_init(outpath);
-	render_init(outpath);
+	render_init();
 	nuklear_inst_init();
-	tilemap_load(outpath);
+	tilemap_load_mappy(outpath);
 	float time_last = glfwGetTime();
 
 	while (!glfwWindowShouldClose(glwin))
@@ -51,14 +66,18 @@ int main(const int argc, const char **argv)
 		glwin_input_t inp;
 		int mx_tile, my_tile;
 
-		glwin_input_poll(&inp);
-		update(outpath, &inp, &mx_tile, &my_tile, dt);
+		update(&inp, &mx_tile, &my_tile, dt);
 
 		/* rendering */
 		glClearColor(0.133f, 0.004f, 0.212f, 1);
 		glClear(GL_COLOR_BUFFER_BIT);
-		tilemap_render(mx_tile, my_tile);
-		nuklear_inst_render(&inp, outpath, mx_tile, my_tile);
+		glDisable(GL_BLEND);
+		for (int y = 0; y < tilemap_h; y++)
+			for (int x = 0; x < tilemap_w; x++)
+				tilemap_tile_render(&inp, x, y,
+						    x == mx_tile &&
+						    y == my_tile);
+		nuklear_inst_render(&inp, outpath, mx_tile, my_tile, dt);
 		glfwSwapBuffers(glwin);
 	}
 	nuklear_inst_terminate();

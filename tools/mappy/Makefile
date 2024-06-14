@@ -14,20 +14,22 @@ ifeq ($(DEBUG),1)
 else
 	OPT := -O3
 endif
-CFLAGS := $(OPT)
+CFLAGS := $(OPT) -Wall -Wextra
 
 final: $(TARGET)
 
 $(TARGET): $(O_FILES)
-	$(CC) $(CFLAGS) $^ -o $@ $(LIB)
+	@echo "    [LD] $@"
+	@$(CC) $(CFLAGS) $^ -o $@ $(LIB)
 
 $(BUILD_DIR)/%.o: %.c
-	mkdir -p $(dir $@)
-	$(CC) $(CFLAGS) -c $< -o $@ $(INC_DIRS:%=-I%)
+	@mkdir -p $(dir $@)
+	@echo "    [CC] $@"
+	@$(CC) $(CFLAGS) -c $< -o $@ $(INC_DIRS:%=-I%)
 
 clean:
 	@echo "Clean Previous Build"
-	@rm -rf $(TARGET)
+	@rm -rf $(TARGET) $(BUILD_DIR)
 
 BETTY_IGNORE := --ignore=CAMELCASE
 BETTY_FLAGS := $(BETTY_IGNORE) -strict -subjective \

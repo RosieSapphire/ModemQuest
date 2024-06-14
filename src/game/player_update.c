@@ -75,16 +75,16 @@ void player_update_collision(const int pos_old[2], const int move[2],
 		    pos_new[1] != pos_old[1] + poslut[i][1])
 			continue;
 
-		if (tilemap[pos_old[1]][pos_old[0] +
-		    poslut[i][0]].type == TILE_TYPE_WALL)
+		if (TILE_TYPE_IS_COLLIDABLE(tilemap[pos_old[1]][pos_old[0] +
+		    poslut[i][0]].type))
 			pos_new[0] = pos_old[0];
 
-		if (tilemap[pos_old[1] + poslut[i][1]][pos_old[0]].type
-		    == TILE_TYPE_WALL)
+		if (TILE_TYPE_IS_COLLIDABLE(tilemap[pos_old[1] +
+		    poslut[i][1]][pos_old[0]].type))
 			pos_new[1] = pos_old[1];
 
-		if (tilemap[pos_old[1] + poslut[i][1]][pos_old[0] +
-		    poslut[i][0]].type == TILE_TYPE_WALL)
+		if (TILE_TYPE_IS_COLLIDABLE(tilemap[pos_old[1] +
+		    poslut[i][1]][pos_old[0] + poslut[i][0]].type))
 		{
 			if (ABS(move[0]) > ABS(move[1]))
 				pos_new[1] = pos_old[1];
@@ -93,7 +93,7 @@ void player_update_collision(const int pos_old[2], const int move[2],
 		}
 	}
 
-	if (tilemap[pos_new[1]][pos_new[0]].type == TILE_TYPE_WALL)
+	if (TILE_TYPE_IS_COLLIDABLE(tilemap[pos_new[1]][pos_new[0]].type))
 	{
 		VEC2_COPY(pos_new, pos_old);
 		player.move_timer = 0;

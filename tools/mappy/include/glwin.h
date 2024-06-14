@@ -5,8 +5,8 @@
 
 #include "types.h"
 
-#define WIN_WID 1024
-#define WIN_HEI 768
+#define WIN_WID_DEFAULT 1024
+#define WIN_HEI_DEFAULT 768
 
 typedef struct
 {
@@ -22,6 +22,7 @@ typedef struct
 } glwin_input_t;
 
 extern GLFWwindow *glwin;
+extern int glwin_w, glwin_h;
 
 void glwin_init(const char *outpath);
 void glwin_input_poll(glwin_input_t *inp);

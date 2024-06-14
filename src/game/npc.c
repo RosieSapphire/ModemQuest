@@ -1,5 +1,3 @@
-#include <libdragon.h>
-
 #include "util.h"
 #include "config.h"
 
@@ -7,16 +5,6 @@
 
 #include "game/player.h"
 #include "game/npc.h"
-
-void npc_init(npc_t *n, const int pos[2], const u16 dialogue_line_cnt,
-	      const dialogue_line_t *dialogue)
-{
-	VEC2_COPY(n->pos, pos);
-	n->dialogue_line_cnt = dialogue_line_cnt;
-	for (int i = 0; i < dialogue_line_cnt; i++)
-		n->dialogue[i] = dialogue[i];
-	n->state = NPC_STATE_IDLE;
-}
 
 static int npc_dialogue_skip(npc_t *n, int *linelen)
 {

@@ -1,10 +1,46 @@
 #include <stdio.h>
 
+#include "game/tilemap.h"
 #include "nuklear_inst.h"
 #include "endian.h"
 #include "tilemap.h"
+#include "npc.h"
 
 #define TILEMAP_PANNING_SPEED 512
+
+void tilemap_place_tile(const int x, const int y)
+{
+	tile_t *t = tilemap[y] + x;
+	int type_old = t->type;
+
+	t->type = tile_selected.type;
+	t->col = tile_selected.col;
+	if (t->type == TILE_TYPE_NPC)
+	{
+		npc_selected.pos[0] = x;
+		npc_selected.pos[1] = y;
+		tilemap_npc_cnt += (type_old != TILE_TYPE_NPC);
+		tilemap_npcs[tilemap_npc_cnt - 1] = npc_selected;
+	}
+	else if (type_old == TILE_TYPE_NPC)
+		--tilemap_npc_cnt;
+}
+
+void tilemap_pick_tile(const int x, const int y)
+{
+	const tile_t *t = tilemap[y] + x;
+
+	tile_selected.type = t->type;
+	tile_selected_colf.r =
+		(float)((t->col & 0xF800) >> 11) / 31.0f;
+	tile_selected_colf.g =
+		(float)((t->col & 0x07C0) >> 6) / 31.0f;
+	tile_selected_colf.b =
+		(float)((t->col & 0x003E) >> 1) / 31.0f;
+
+	if (t->type == TILE_TYPE_NPC)
+		npc_selected = *npc_get_from_pos(x, y);
+}
 
 void tilemap_place_rect(const int mx_tile, const int my_tile)
 {
@@ -38,8 +74,7 @@ void tilemap_place_rect(const int mx_tile, const int my_tile)
 		{
 			for (int x = point_ax; x <= point_bx; x++)
 			{
-				tilemap[y][x].type = tile_selected.type;
-				tilemap[y][x].col = tile_selected.col;
+				tilemap_place_tile(x, y);
 			}
 		}
 		break;
@@ -48,12 +83,13 @@ void tilemap_place_rect(const int mx_tile, const int my_tile)
 	which_point ^= 1;
 }
 
-static void tilemap_save(const char *outpath)
+void tilemap_save(const char *outpath)
 {
 	FILE *file = fopen(outpath, "wb");
 
 	fwrite_ef16(&tilemap_w, file);
 	fwrite_ef16(&tilemap_h, file);
+	fwrite_ef16(&tilemap_npc_cnt, file);
 	for (int y = 0; y < tilemap_h; y++)
 	{
 		for (int x = 0; x < tilemap_w; x++)
@@ -64,60 +100,49 @@ static void tilemap_save(const char *outpath)
 			fwrite_ef16(&t->col, file);
 		}
 	}
+	for (int i = 0; i < tilemap_npc_cnt; i++)
+	{
+		const npc_t *n = tilemap_npcs + i;
+
+		fwrite(n->name, 1, NPC_NAME_MAX, file);
+		fwrite_ef16(n->pos + 0, file);
+		fwrite_ef16(n->pos + 1, file);
+		fwrite_ef16(&n->dialogue_line_cnt, file);
+		for (int j = 0; j < n->dialogue_line_cnt; j++)
+		{
+			const dialogue_line_t *dl = n->dialogue + j;
+
+			fwrite(dl->speaker, 1, NPC_NAME_MAX, file);
+			fwrite(dl->line, 1, DIALOGUE_LINE_MAX, file);
+		}
+	}
 
 	fclose(file);
 	printf("SAVED FILE '%s'\n", outpath);
 }
 
-void tilemap_resize(const int w_new, const int h_new)
+void tilemap_update_panning(const glwin_input_t *inp, const float dt)
 {
-	if (w_new <= 0 || h_new <= 0 ||
-	    w_new > TILES_W_MAX || h_new > TILES_H_MAX)
+	if (npc_name_buf_state == NPC_NAME_BUF_STATE_ACTIVE)
 		return;
 
-	tilemap_w = w_new;
-	tilemap_h = h_new;
-}
-
-void tilemap_update(const glwin_input_t *inp, const int mx_tile,
-		    const int my_tile, const char *outpath, const float dt)
-{
-	/* panning */
 	for (int i = 0; i < inp->shift_now + 1; i++)
 	{
+		const int px_min = -((glwin_w - 180) - (tilemap_w * TILE_SIZE));
+		const int px_max = 0;
+		const int py_min = -((glwin_h - 180) -
+				(((tilemap_h >> 1) - 1) * TILE_SIZE));
+		const int py_max = -128;
+
 		tilemap_pan_x += (inp->d - inp->a) * TILEMAP_PANNING_SPEED * dt;
+		if (tilemap_pan_x > px_max)
+			tilemap_pan_x = px_max;
+		if (tilemap_pan_x < px_min)
+			tilemap_pan_x = px_min;
 		tilemap_pan_y += (inp->s - inp->w) * TILEMAP_PANNING_SPEED * dt;
+		if (tilemap_pan_y > py_max)
+			tilemap_pan_y = py_max;
+		if (tilemap_pan_y < py_min)
+			tilemap_pan_y = py_min;
 	}
-
-	/* zooming */
-	tilemap_is_zoomed ^= (inp->z_now && !inp->z_last);
-
-	/* placing tile */
-	int mouse_inside_map = tilemap_is_mouse_inside(inp, mx_tile, my_tile);
-
-	if (inp->lmb_now && mouse_inside_map)
-		tilemap[my_tile][mx_tile] = tile_selected;
-
-	/* picking tile */
-	if (inp->mmb_now && !inp->mmb_last && mouse_inside_map)
-	{
-		printf("Selected\n");
-		const tile_t *t = tilemap[my_tile] + mx_tile;
-
-		tile_selected.type = t->type;
-		tile_selected_colf.r =
-			(float)((t->col & 0xF800) >> 11) / 31.0f;
-		tile_selected_colf.g =
-			(float)((t->col & 0x07C0) >> 6) / 31.0f;
-		tile_selected_colf.b =
-			(float)((t->col & 0x003E) >> 1) / 31.0f;
-	}
-
-	/* recting tilemap */
-	if (inp->rmb_now && !inp->rmb_last && mouse_inside_map)
-		tilemap_place_rect(mx_tile, my_tile);
-
-	/* saving */
-	if (inp->enter_now && !inp->enter_last)
-		tilemap_save(outpath);
 }

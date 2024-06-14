@@ -5,8 +5,9 @@
 #include "game/tilemap.h"
 #include "game/player.h"
 
-u16 tilemap_w, tilemap_h;
+u16 tilemap_w, tilemap_h, tilemap_npc_cnt;
 tile_t tilemap[TILEMAP_H_MAX][TILEMAP_W_MAX];
+npc_t tilemap_npcs[TILEMAP_NPC_MAX];
 
 static int tilemap_init_spawn_pos(int *spawnpos)
 {
@@ -36,7 +37,7 @@ static int tilemap_init_spawn_pos(int *spawnpos)
 	return (spawn_cnt);
 }
 
-void tilemap_init(const char *path, vec2i spawnpos)
+void tilemap_load(const char *path, vec2i spawnpos)
 {
 	FILE *file = fopen(path, "rb");
 	int spawnpos_cnt;
@@ -44,6 +45,7 @@ void tilemap_init(const char *path, vec2i spawnpos)
 	assertf(file, "File loading fucked up '%s'\n", path);
 	fread(&tilemap_w, 2, 1, file);
 	fread(&tilemap_h, 2, 1, file);
+	fread(&tilemap_npc_cnt, 2, 1, file);
 	for (int y = 0; y < tilemap_h; y++)
 	{
 		for (int x = 0; x < tilemap_w; x++)
@@ -54,11 +56,29 @@ void tilemap_init(const char *path, vec2i spawnpos)
 			fread(&t->col, 2, 1, file);
 		}
 	}
+	for (int i = 0; i < tilemap_npc_cnt; i++)
+	{
+		npc_t *n = tilemap_npcs + i;
+
+		fread(n->name, 1, NPC_NAME_MAX, file);
+		fread(n->pos, 2, 2, file);
+		fread(&n->dialogue_line_cnt, 2, 1, file);
+		for (int j = 0; j < n->dialogue_line_cnt; j++)
+		{
+			dialogue_line_t *dl = n->dialogue + j;
+
+			fread(dl->speaker, 1, NPC_NAME_MAX, file);
+			fread(dl->line, 1, DIALOGUE_LINE_MAX, file);
+		}
+
+		n->state = NPC_STATE_IDLE;
+		n->dialogue_cur = -1;
+		n->dialogue_char_cur = 0;
+	}
 	fclose(file);
 	spawnpos_cnt = tilemap_init_spawn_pos(spawnpos);
-
-	debugf("LOADED TILEMAP '%s': [%d, %d] %d spawn(s)\n",
-	       path, tilemap_w, tilemap_h, spawnpos_cnt);
+	debugf("LOADED TILEMAP '%s': [%d, %d] %d spawn(s), %d npc(s)\n",
+	       path, tilemap_w, tilemap_h, spawnpos_cnt, tilemap_npc_cnt);
 }
 
 void tilemap_render(void)

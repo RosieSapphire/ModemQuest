@@ -2,14 +2,13 @@
 
 #include "util.h"
 
-void rdpq_fill_rect_border(const int x0, const int y0,
-			   const int x1, const int y1, const u16 col,
-			   const uint8_t thick)
+void rdpq_fill_rect_border(const int x0, const int y0, const int x1,
+			   const int y1, const u16 col, const uint8_t thick)
 {
 	const u16 lighter16 = col;
 	const u16 darker16 = (((col & 0xF800) >> 1) & 0xF800) |
-				  (((col & 0x07C0) >> 1) & 0x07C0) |
-				  (((col & 0x003E) >> 1) & 0x003E) | 1;
+			     (((col & 0x07C0) >> 1) & 0x07C0) |
+			     (((col & 0x003E) >> 1) & 0x003E) | 1;
 	const color_t lighter = color_from_packed16(lighter16);
 	const color_t darker = color_from_packed16(darker16);
 

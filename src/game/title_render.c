@@ -29,26 +29,24 @@ void title_background_render(const float time_now)
 	rdpq_set_mode_standard();
 	rdpq_mode_dithering(DITHER_BAYER_NONE);
 	rdpq_mode_combiner(RDPQ_COMBINER_TEX_FLAT);
-	rdpq_tex_upload(TILE0, &bg_surf, &(const rdpq_texparms_t){
-			.s.repeats = REPEAT_INFINITE,
-			.s.mirror = MIRROR_REPEAT,
+	rdpq_tex_upload(TILE0, &bg_surf,
+			&(const rdpq_texparms_t){
+				.s.repeats = REPEAT_INFINITE,
+				.s.mirror = MIRROR_REPEAT,
 			});
-	rdpq_texture_rectangle(TILE0, 0, 0, DSP_WID,
-			       DSP_HEI, time_now * 512, 0);
+	rdpq_texture_rectangle(TILE0, 0, 0, DSP_WID, DSP_HEI, time_now * 512,
+			       0);
 	const float traces_fade = (cosf(time_now * 3.14159f) + 1.0f) * 0.5f;
 	const color_t traces_color =
-		RGBA16(
-			t3d_lerp(0.588f, 0.878f, traces_fade) * 31,
-			t3d_lerp(0.263f, 0.431f, traces_fade) * 31,
-			t3d_lerp(0.094f, 0.212f, traces_fade) * 31, 0x1
-		);
+		RGBA16(t3d_lerp(0.588f, 0.878f, traces_fade) * 31,
+		       t3d_lerp(0.263f, 0.431f, traces_fade) * 31,
+		       t3d_lerp(0.094f, 0.212f, traces_fade) * 31, 0x1);
 
-	rdpq_mode_blender(RDPQ_BLENDER((IN_RGB, IN_ALPHA,
-					MEMORY_RGB, INV_MUX_ALPHA)));
+	rdpq_mode_blender(
+		RDPQ_BLENDER((IN_RGB, IN_ALPHA, MEMORY_RGB, INV_MUX_ALPHA)));
 	rdpq_set_prim_color(traces_color);
 
-	for (int i = 0; i < 3 * 3; i++)
-	{
+	for (int i = 0; i < 3 * 3; i++) {
 		int x = title_bg_pos[0] + 256 * (i % 3);
 		int y = title_bg_pos[1] + 256 * (i / 3);
 
@@ -62,17 +60,19 @@ void title_background_render(const float time_now)
 void title_logo_render(void)
 {
 	rdpq_set_mode_standard();
-	rdpq_mode_blender(RDPQ_BLENDER((IN_RGB, IN_ALPHA,
-					MEMORY_RGB, INV_MUX_ALPHA)));
+	rdpq_mode_blender(
+		RDPQ_BLENDER((IN_RGB, IN_ALPHA, MEMORY_RGB, INV_MUX_ALPHA)));
 	rdpq_sprite_blit(title_spr_logo, 60, 25, NULL);
 }
 
 void title_credits_render(void)
 {
 	rdpq_set_mode_standard();
-	font_printf(0, DSP_HEI - 42, &(const rdpq_textparms_t) {
-				.align = ALIGN_CENTER,
-				.width = DSP_WID,
-			}, "A Homebrew N64 Original by\n"
-			"Aeryk Ressler & Rosie Sapphire");
+	font_printf(0, DSP_HEI - 42,
+		    &(const rdpq_textparms_t){
+			    .align = ALIGN_CENTER,
+			    .width = DSP_WID,
+		    },
+		    "A Homebrew N64 Original by\n"
+		    "Aeryk Ressler & Rosie Sapphire");
 }

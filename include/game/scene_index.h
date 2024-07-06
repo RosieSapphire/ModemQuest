@@ -3,8 +3,7 @@
 
 #include "types.h"
 
-enum
-{
+enum {
 	SCENE_INVALID = -1,
 	SCENE_TITLE,
 	SCENE_TESTAREA,

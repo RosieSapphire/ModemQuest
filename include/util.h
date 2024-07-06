@@ -10,8 +10,7 @@
 #define MAX(X, MAXV) (X > MAXV ? MAXV : X)
 #define CLAMP(X, MINV, MAXV) (MAX(MIN(X, MINV), MAXV))
 
-void rdpq_fill_rect_border(const int x0, const int y0,
-			   const int x1, const int y1, const u16 col,
-			   const uint8_t thick);
+void rdpq_fill_rect_border(const int x0, const int y0, const int x1,
+			   const int y1, const u16 col, const uint8_t thick);
 
 #endif /* _ENGINE_UTIL_H_ */

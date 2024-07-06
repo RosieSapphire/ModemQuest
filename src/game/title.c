@@ -53,8 +53,7 @@ int title_update(const joypad_buttons_t pressed,
 	const int cond_to_exit = pressed.start & ~is_exiting;
 
 	is_exiting ^= cond_to_exit;
-	if (fade_update(cond_to_exit) && is_exiting)
-	{
+	if (fade_update(cond_to_exit) && is_exiting) {
 		rdpq_call_deferred(title_terminate, NULL);
 		return (SCENE_TESTAREA);
 	}

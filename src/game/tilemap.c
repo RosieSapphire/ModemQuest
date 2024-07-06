@@ -15,15 +15,13 @@ static int tilemap_init_spawn_pos(int *spawnpos)
 	int *spawnposs = malloc(0);
 	int spawn_cnt = 0;
 
-	for (int y = 0; y < tilemap_h; y++)
-	{
-		for (int x = 0; x < tilemap_w; x++)
-		{
+	for (int y = 0; y < tilemap_h; y++) {
+		for (int x = 0; x < tilemap_w; x++) {
 			if (tilemap[y][x].type != TILE_TYPE_PLAYER_SPAWN)
 				continue;
 
-			spawnposs = realloc(spawnposs, sizeof(int) *
-					    ++spawn_cnt * 2);
+			spawnposs = realloc(spawnposs,
+					    sizeof(int) * ++spawn_cnt * 2);
 			VEC2_SET((spawnposs + (spawn_cnt - 1) * 2), x, y);
 		}
 	}
@@ -46,25 +44,21 @@ void tilemap_load(const char *path, vec2i spawnpos)
 	fread(&tilemap_w, 2, 1, file);
 	fread(&tilemap_h, 2, 1, file);
 	fread(&tilemap_npc_cnt, 2, 1, file);
-	for (int y = 0; y < tilemap_h; y++)
-	{
-		for (int x = 0; x < tilemap_w; x++)
-		{
+	for (int y = 0; y < tilemap_h; y++) {
+		for (int x = 0; x < tilemap_w; x++) {
 			tile_t *t = tilemap[y] + x;
 
 			fread(&t->type, 1, 1, file);
 			fread(&t->col, 2, 1, file);
 		}
 	}
-	for (int i = 0; i < tilemap_npc_cnt; i++)
-	{
+	for (int i = 0; i < tilemap_npc_cnt; i++) {
 		npc_t *n = tilemap_npcs + i;
 
 		fread(n->name, 1, NPC_NAME_MAX, file);
 		fread(n->pos, 2, 2, file);
 		fread(&n->dialogue_line_cnt, 2, 1, file);
-		for (int j = 0; j < n->dialogue_line_cnt; j++)
-		{
+		for (int j = 0; j < n->dialogue_line_cnt; j++) {
 			dialogue_line_t *dl = n->dialogue + j;
 
 			fread(dl->speaker, 1, NPC_NAME_MAX, file);
@@ -77,8 +71,8 @@ void tilemap_load(const char *path, vec2i spawnpos)
 	}
 	fclose(file);
 	spawnpos_cnt = tilemap_init_spawn_pos(spawnpos);
-	debugf("LOADED TILEMAP '%s': [%d, %d] %d spawn(s), %d npc(s)\n",
-	       path, tilemap_w, tilemap_h, spawnpos_cnt, tilemap_npc_cnt);
+	debugf("LOADED TILEMAP '%s': [%d, %d] %d spawn(s), %d npc(s)\n", path,
+	       tilemap_w, tilemap_h, spawnpos_cnt, tilemap_npc_cnt);
 }
 
 void tilemap_render(void)
@@ -92,16 +86,14 @@ void tilemap_render(void)
 	x_off = MIN(ppos[0] - ((DSP_WID >> 1) - (TILE_SIZE >> 1)), 0);
 	y_off = MIN(ppos[1] - ((DSP_HEI >> 1) - (TILE_SIZE >> 1)), 0);
 
-	for (int y = 0; y < tilemap_h; y++)
-	{
-		for (int x = 0; x < tilemap_w; x++)
-		{
+	for (int y = 0; y < tilemap_h; y++) {
+		for (int x = 0; x < tilemap_w; x++) {
 			int xo = (x * TILE_SIZE) - x_off;
 			int yo = (y * TILE_SIZE) - y_off;
 
 			rdpq_fill_rect_border(xo, yo, xo + TILE_SIZE,
-					      yo + TILE_SIZE,
-					      tilemap[y][x].col, 2);
+					      yo + TILE_SIZE, tilemap[y][x].col,
+					      2);
 		}
 	}
 }

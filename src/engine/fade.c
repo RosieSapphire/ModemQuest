@@ -25,7 +25,9 @@ void fade_load_spr(void)
 void fade_state_setup(const int fade_state_new)
 {
 	const int fade_radius_new[3] = {
-		0, 0, FADE_RADIUS_MAX,
+		0,
+		0,
+		FADE_RADIUS_MAX,
 	};
 
 	fade_state = fade_state_new;
@@ -44,8 +46,7 @@ int fade_update(const int should_switch)
 
 	fade_state_setup(fade_state ^ should_switch);
 	fade_radius = MAX(fade_radius_new[fade_state], FADE_RADIUS_MAX);
-	if (fade_radius < 0)
-	{
+	if (fade_radius < 0) {
 		fade_radius = 0;
 		return (1);
 	}
@@ -63,21 +64,20 @@ void fade_render(void)
 	const int rect[4] = {
 		-(fade_radius >> 1) + (DSP_WID >> 1),
 		-(fade_radius >> 1) + (DSP_HEI >> 1),
-		 (fade_radius >> 1) + (DSP_WID >> 1),
-		 (fade_radius >> 1) + (DSP_HEI >> 1),
+		(fade_radius >> 1) + (DSP_WID >> 1),
+		(fade_radius >> 1) + (DSP_HEI >> 1),
 	};
 
 	if (!fade_radius)
 		goto draw_black;
 
 	rdpq_set_mode_standard();
-	rdpq_mode_blender(RDPQ_BLENDER((MEMORY_RGB, IN_ALPHA,
-					BLEND_RGB, ZERO)));
+	rdpq_mode_blender(
+		RDPQ_BLENDER((MEMORY_RGB, IN_ALPHA, BLEND_RGB, ZERO)));
 	rdpq_mode_filter(FILTER_BILINEAR);
 	rdpq_sprite_upload(TILE0, spr_circle, NULL);
 	rdpq_mode_dithering(DITHER_BAYER_NONE);
-	rdpq_texture_rectangle_scaled(TILE0,
-				      rect[0], rect[1],  rect[2], rect[3],
+	rdpq_texture_rectangle_scaled(TILE0, rect[0], rect[1], rect[2], rect[3],
 				      0, 0, FADE_SURF_WIDTH, FADE_SURF_HEIGHT);
 
 	rdpq_set_mode_fill(RGBA16(0, 0, 0, 1));

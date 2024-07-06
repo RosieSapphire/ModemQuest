@@ -12,7 +12,8 @@
 static int is_exiting;
 
 static void testarea_terminate(void *dummy)
-{}
+{
+}
 
 void testarea_init(void)
 {
@@ -25,8 +26,7 @@ void testarea_init(void)
 	is_exiting = 0;
 }
 
-int testarea_update(const joypad_buttons_t pressed,
-		    const joypad_inputs_t held)
+int testarea_update(const joypad_buttons_t pressed, const joypad_inputs_t held)
 {
 	for (int i = 0; i < tilemap_npc_cnt; i++)
 		npc_player_interact(tilemap_npcs + i, pressed);
@@ -35,8 +35,7 @@ int testarea_update(const joypad_buttons_t pressed,
 	int exit_cond = pressed.start & ~is_exiting;
 
 	is_exiting ^= exit_cond;
-	if (fade_update(exit_cond))
-	{
+	if (fade_update(exit_cond)) {
 		rdpq_call_deferred(testarea_terminate, NULL);
 		return (SCENE_TITLE);
 	}

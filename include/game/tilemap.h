@@ -12,8 +12,7 @@
 #define TILEMAP_NPC_MAX 128
 #define TILE_SIZE 32
 
-enum
-{
+enum {
 	TILE_TYPE_PLAYER_SPAWN = 0,
 	TILE_TYPE_NPC,
 	TILE_TYPE_FLOOR,
@@ -24,8 +23,7 @@ enum
 #define TILE_TYPE_IS_COLLIDABLE(X) \
 	(((X) != TILE_TYPE_FLOOR) && ((X) != TILE_TYPE_PLAYER_SPAWN))
 
-typedef struct
-{
+typedef struct {
 	u8 type;
 	u16 col;
 } tile_t;

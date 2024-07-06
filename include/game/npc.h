@@ -7,21 +7,18 @@
 #define DIALOGUE_MAX 128
 #define DIALOGUE_LINE_MAX 256
 
-enum
-{
+enum {
 	NPC_STATE_IDLE,
 	NPC_STATE_TALKING,
 	NPC_STATE_CNT,
 };
 
-typedef struct
-{
+typedef struct {
 	char speaker[NPC_NAME_MAX];
 	char line[DIALOGUE_LINE_MAX];
 } dialogue_line_t;
 
-typedef struct
-{
+typedef struct {
 	/* engine */
 	char name[NPC_NAME_MAX];
 	u16 pos[2], dialogue_line_cnt;

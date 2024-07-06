@@ -11,8 +11,7 @@
 
 #define PLAYER_MOVE_TIMER_MAX 32
 
-enum
-{
+enum {
 	PLAYER_DIR_UP,
 	PLAYER_DIR_DOWN,
 	PLAYER_DIR_LEFT,
@@ -20,8 +19,7 @@ enum
 	PLAYER_DIR_CNT,
 };
 
-typedef struct
-{
+typedef struct {
 	char name[PLAYER_NAME_LEN];
 	vec2i pos;
 	vec2f pos_lerp_a, pos_lerp_b;

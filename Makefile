@@ -64,14 +64,9 @@ filesystem/%.map: assets/%.map
 clean:
 	rm -rf $(BUILD_DIR) $(ROM) filesystem/
 
-BETTY_IGNORE := --ignore=CONSTANT_COMPARISON,REDUNDANT_CODE
-BETTY_FLAGS  := -strict -subjective --show-types \
-		--allow-global-variables $(BETTY_IGNORE)
-BETTY_SCAN   := $(filter-out include/debug/debug.h include/types.h,\
-		$(H_FILES)) \
-		$(filter-out src/debug/debug.c,$(C_FILES))
+FORMAT_SCAN := $(H_FILES) $(C_FILES)
 
-betty:
-	betty-style $(BETTY_FLAGS) $(BETTY_SCAN)
+format:
+	clang-format -i --style=file $(FORMAT_SCAN)
 
 -include $(D_FILES)

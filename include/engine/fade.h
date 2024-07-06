@@ -3,8 +3,7 @@
 
 #include <stdint.h>
 
-enum
-{
+enum {
 	FADE_STATE_DISABLED = -1,
 	FADE_STATE_IN = 0,
 	FADE_STATE_OUT,

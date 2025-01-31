@@ -5,8 +5,9 @@
 #include <GL/glew.h>
 
 #include "config.h"
-#include "glwin.h"
+#include "input.h"
 #include "tilemap.h"
+#include "window.h"
 
 #include "game/tilemap.h"
 
@@ -36,12 +37,11 @@ void nuklear_inst_init(void)
 
 	struct nk_font_atlas *atlas;
 
-	nkctx = nk_glfw3_init(glwin, NK_GLFW3_INSTALL_CALLBACKS);
+	nkctx = nk_glfw3_init(window, NK_GLFW3_INSTALL_CALLBACKS);
 	nk_glfw3_font_stash_begin(&atlas);
-	jbm_font = nk_font_atlas_add_from_file(atlas, jbm_path_main,
-					       FONT_SIZE, 0);
-	if (!jbm_font)
-	{
+	jbm_font =
+		nk_font_atlas_add_from_file(atlas, jbm_path_main, FONT_SIZE, 0);
+	if (!jbm_font) {
 		printf("Falling back on system-provided font\n");
 		jbm_font = nk_font_atlas_add_from_file(atlas, jbm_path_backup,
 						       FONT_SIZE, 0);
@@ -50,37 +50,36 @@ void nuklear_inst_init(void)
 	nk_style_set_font(nkctx, &jbm_font->handle);
 }
 
-void nuklear_inst_render(const glwin_input_t *inp, const char *outpath,
-			 const int mx_tile, const int my_tile, const float dt)
+void nuklear_inst_render(const char *outpath, const int mouse[2],
+			 const float dt)
 {
 	int num_spawns = 0;
 	char project_str[128];
 
-	for (int y = 0; y < tilemap_h; y++)
-		for (int x = 0; x < tilemap_w; x++)
-			num_spawns += (tilemap[y][x].type ==
-				 TILE_TYPE_PLAYER_SPAWN);
+	for (int y = 0; y < tilemap_height; y++)
+		for (int x = 0; x < tilemap_width; x++)
+			num_spawns +=
+				(tilemap[y][x].type == TILE_TYPE_PLAYER_SPAWN);
 
 	nk_glfw3_new_frame();
 	snprintf(project_str, 128, "PROJECT '%s' %d spawn(s), %d npc(s)",
-		 outpath, num_spawns, tilemap_npc_cnt);
+		 outpath, num_spawns, tilemap_num_npcs);
 
-	if (nk_begin(nkctx, project_str,
-		     nk_rect(0, 0, glwin_w - 180, 128),
+	if (nk_begin(nkctx, project_str, nk_rect(0, 0, window_width - 180, 128),
 		     NK_WINDOW_BORDER | NK_WINDOW_TITLE))
 		nuklear_inst_panel_project(outpath, dt);
 	nk_end(nkctx);
 
 	if (nk_begin(nkctx, "TILE SELECTED",
-		     nk_rect(glwin_w - 180, 0, 180, glwin_h),
+		     nk_rect(window_width - 180, 0, 180, window_height),
 		     NK_WINDOW_BORDER | NK_WINDOW_TITLE))
-		nuklear_inst_panel_tile_selected(inp, mx_tile, my_tile);
+		nuklear_inst_panel_tile_selected(mouse);
 	nk_end(nkctx);
 
-	if (tile_selected.type == TILE_TYPE_NPC)
-	{
+	if (tile_selected.type == TILE_TYPE_NPC) {
 		if (nk_begin(nkctx, "NPC",
-			     nk_rect(0, glwin_h - 180, glwin_w - 180, glwin_h),
+			     nk_rect(0, window_height - 180, window_width - 180,
+				     window_height),
 			     NK_WINDOW_BORDER | NK_WINDOW_TITLE))
 			nuklear_inst_panel_npc();
 		nk_end(nkctx);

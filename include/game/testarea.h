@@ -1,12 +1,11 @@
 #ifndef _GAME_TESTAREA_H_
 #define _GAME_TESTAREA_H_
 
-#include <libdragon.h>
-
-#include "game/player.h"
+#include "game/scene.h"
 
 void testarea_init(void);
-int testarea_update(const joypad_buttons_t pressed, const joypad_inputs_t held);
-void testarea_render(void);
+scene_index_t testarea_update(const float dt);
+void testarea_render(const float subtick);
+void testarea_terminate(void);
 
 #endif /* _GAME_TESTAREA_H_ */

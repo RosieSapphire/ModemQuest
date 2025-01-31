@@ -5,35 +5,35 @@
 
 #include "config.h"
 #include "types.h"
-#include "render.h"
 #include "nuklear_inst.h"
+#include "window.h"
+#include "render.h"
 
 /* constants */
-static const u16 tile_indis[6] = {0, 2, 1, 2, 3, 1};
+static const u16 tile_indis[6] = { 0, 2, 1, 2, 3, 1 };
 
 static const char *vertshd_src =
-"#version 330 core\n"
-"\n"
-"layout (location = 0) in vec2 a_pos;\n"
-"\n"
-"uniform mat4 u_proj;\n"
-"\n"
-"void main(void)\n"
-"{\n"
-"        gl_Position = u_proj * vec4(a_pos, 0.0, 1.0);\n"
-"}\n";
+	"#version 330 core\n"
+	"\n"
+	"layout (location = 0) in vec2 a_pos;\n"
+	"\n"
+	"uniform mat4 u_proj;\n"
+	"\n"
+	"void main(void)\n"
+	"{\n"
+	"        gl_Position = u_proj * vec4(a_pos, 0.0, 1.0);\n"
+	"}\n";
 
-static const char *fragshd_src =
-"#version 330 core\n"
-"\n"
-"uniform vec4 u_col;\n"
-"\n"
-"out vec4 frag_col;\n"
-"\n"
-"void main(void)\n"
-"{\n"
-"        frag_col = vec4(u_col);\n"
-"}\n";
+static const char *fragshd_src = "#version 330 core\n"
+				 "\n"
+				 "uniform vec4 u_col;\n"
+				 "\n"
+				 "out vec4 frag_col;\n"
+				 "\n"
+				 "void main(void)\n"
+				 "{\n"
+				 "        frag_col = vec4(u_col);\n"
+				 "}\n";
 
 /* variables */
 static u32 rect_shader, rect_vao, rect_vbo, rect_ebo;
@@ -52,14 +52,12 @@ static void render_shader_compile(void)
 	glCompileShader(frag);
 	glGetShaderiv(vert, GL_COMPILE_STATUS, &vert_stat);
 	glGetShaderiv(frag, GL_COMPILE_STATUS, &frag_stat);
-	if (!vert_stat)
-	{
+	if (!vert_stat) {
 		glGetShaderInfoLog(vert, 512, NULL, log);
 		fprintf(stderr, "Vertex Shader failed to compile: %s\n", log);
 		exit(EXIT_FAILURE);
 	}
-	if (!frag_stat)
-	{
+	if (!frag_stat) {
 		glGetShaderInfoLog(frag, 512, NULL, log);
 		fprintf(stderr, "Fragment Shader failed to compile: %s\n", log);
 		exit(EXIT_FAILURE);
@@ -70,8 +68,7 @@ static void render_shader_compile(void)
 	glAttachShader(rect_shader, frag);
 	glLinkProgram(rect_shader);
 	glGetProgramiv(rect_shader, GL_LINK_STATUS, &prog_stat);
-	if (!prog_stat)
-	{
+	if (!prog_stat) {
 		glGetProgramInfoLog(rect_shader, 512, NULL, log);
 		fprintf(stderr, "Shader Program failed to link: %s\n", log);
 		exit(EXIT_FAILURE);
@@ -89,8 +86,8 @@ static void render_rect_buffers_init(void)
 	glGenBuffers(1, &rect_vbo);
 	glBindBuffer(GL_ARRAY_BUFFER, rect_vbo);
 	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE,
-			      sizeof(float) * 2, NULL);
+	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(float) * 2,
+			      NULL);
 	glBufferData(GL_ARRAY_BUFFER, 0, NULL, GL_DYNAMIC_DRAW);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
@@ -106,8 +103,8 @@ void render_init(void)
 {
 	glewExperimental = 1;
 	glewInit();
-	glViewport(0, 0, glwin_w, glwin_h);
-	glm_ortho(0, glwin_w, glwin_h, 0, -1, 1, mat_proj);
+	glViewport(0, 0, window_width, window_height);
+	glm_ortho(0, window_width, window_height, 0, -1, 1, mat_proj);
 	render_rect_buffers_init();
 	render_shader_compile();
 
@@ -118,30 +115,29 @@ void render_init(void)
 }
 
 void render_rect(const int x0, const int y0, const int x1, const int y1,
-		 const float r, const float g, const float b,
-		 const float a)
+		 const float r, const float g, const float b, const float a)
 {
-	const float tile_verts[4][2] = {{x0, y0}, {x1, y0}, {x0, y1}, {x1, y1}};
+	const float tile_verts[4][2] = {
+		{ x0, y0 }, { x1, y0 }, { x0, y1 }, { x1, y1 }
+	};
 	const int u_proj_loc = glGetUniformLocation(rect_shader, "u_proj");
 	const int u_col_loc = glGetUniformLocation(rect_shader, "u_col");
-	const float rgba[4] = {r, g, b, a};
+	const float rgba[4] = { r, g, b, a };
 
-	if (u_proj_loc == -1)
-	{
+	if (u_proj_loc == -1) {
 		fprintf(stderr, "Couldn't find 'u_proj' in shader\n");
 		exit(EXIT_FAILURE);
 	}
 
-	if (u_col_loc == -1)
-	{
+	if (u_col_loc == -1) {
 		fprintf(stderr, "Couldn't find 'u_col' in shader\n");
 		exit(EXIT_FAILURE);
 	}
 
 	glBindVertexArray(rect_vao);
 	glBindBuffer(GL_ARRAY_BUFFER, rect_vbo);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(tile_verts),
-		     tile_verts, GL_DYNAMIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(tile_verts), tile_verts,
+		     GL_DYNAMIC_DRAW);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glUseProgram(rect_shader);
 	glUniformMatrix4fv(u_proj_loc, 1, GL_FALSE, (float *)mat_proj);

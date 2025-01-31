@@ -1,54 +1,46 @@
-#include "config.h"
-#include "util.h"
+#include <libdragon.h>
 
-#include "engine/fade.h"
+#include "input.h"
+#include "vec2.h"
 
-#include "game/scene_index.h"
-#include "game/player.h"
-#include "game/npc.h"
-#include "game/tilemap.h"
+#include "engine/tilemap.h"
+#include "engine/player.h"
+
+#include "game/fade_transition.h"
 #include "game/testarea.h"
-
-static int is_exiting;
-
-static void testarea_terminate(void *dummy)
-{
-}
 
 void testarea_init(void)
 {
 	vec2i player_spawn_pos;
 
-	tilemap_load("rom:/testarea.map", player_spawn_pos);
+	tilemap_init("rom:/testarea.map", player_spawn_pos);
 	player_init(player_spawn_pos);
-	fade_state_setup(FADE_STATE_IN);
-
-	is_exiting = 0;
+	fade_transition_set(FADE_TRANSITION_IN);
 }
 
-int testarea_update(const joypad_buttons_t pressed, const joypad_inputs_t held)
+scene_index_t testarea_update(const float dt)
 {
-	for (int i = 0; i < tilemap_npc_cnt; i++)
-		npc_player_interact(tilemap_npcs + i, pressed);
-	player_update(held);
-
-	int exit_cond = pressed.start & ~is_exiting;
-
-	is_exiting ^= exit_cond;
-	if (fade_update(exit_cond)) {
-		rdpq_call_deferred(testarea_terminate, NULL);
-		return (SCENE_TITLE);
+	if (fade_transition_update(INPUT_GET_BTN(START, PRESSED), dt)) {
+		return SCENE_INDEX_TITLE;
 	}
 
-	return (SCENE_TESTAREA);
+	tilemap_update();
+	player_update(dt);
+
+	return SCENE_INDEX_TESTAREA;
 }
 
-void testarea_render(void)
+void testarea_render(const float subtick)
 {
-	rdpq_clear(RGBA16(0, 0, 0, 1));
-	tilemap_render();
-	player_render();
-	for (int i = 0; i < tilemap_npc_cnt; i++)
-		npc_dialogue_box_render(tilemap_npcs + i);
-	fade_render();
+	rdpq_clear(color_from_packed32(0xBDF2DC6F));
+	tilemap_render(subtick);
+	player_render(subtick);
+	tilemap_render_npc_dialogue_boxes();
+	fade_transition_render();
+}
+
+void testarea_terminate(void)
+{
+	player_terminate();
+	tilemap_terminate();
 }

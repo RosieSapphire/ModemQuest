@@ -1,72 +1,71 @@
-DEBUG     := 0
+DEBUG_ENABLED := 1
 BUILD_DIR := build
 
 include $(N64_INST)/include/n64.mk
-include $(T3D_INST)/t3d.mk
 
-MKFONT_FLAGS ?=
-MKSPRITE_FLAGS ?=
+CC := gcc
 
 INC_DIRS := include include/engine include/game
+INC_FLAGS := $(INC_DIRS:%=-I%)
 SRC_DIRS := src src/engine src/game
-ifeq ($(DEBUG),1)
-	INC_DIRS += include/debug
-	SRC_DIRS += src/debug
-endif
-H_FILES  := $(foreach dir,$(INC_DIRS),$(wildcard $(dir)/*.h))
-C_FILES  := $(foreach dir,$(SRC_DIRS),$(wildcard $(dir)/*.c))
-O_FILES  := $(C_FILES:%.c=$(BUILD_DIR)/%.o)
-D_FILES  := $(O_FILES:%.o=%.d)
-
-ASSETS_TTF  := $(wildcard assets/*.ttf)
-ASSETS_PNG  := $(wildcard assets/*.png)
-ASSETS_MAP  := $(wildcard assets/*.map)
-ASSETS_CONV := $(ASSETS_TTF:assets/%.ttf=filesystem/%.font64) \
-	       $(ASSETS_PNG:assets/%.png=filesystem/%.sprite) \
-	       $(ASSETS_MAP:assets/%.map=filesystem/%.map) \
+H_FILES := $(foreach dir,$(INC_DIRS),$(wildcard $(dir)/*.h))
+C_FILES := $(foreach dir,$(SRC_DIRS),$(wildcard $(dir)/*.c))
+O_FILES := $(C_FILES:%.c=$(BUILD_DIR)/%.o)
 
 TARGET := modemquest
-ELF    := $(BUILD_DIR)/$(TARGET).elf
-DFS    := $(BUILD_DIR)/$(TARGET).dfs
-ROM    := $(TARGET).z64
-
-INC_FLAGS  := $(INC_DIRS:%=-I%)
-N64_CFLAGS += $(INC_FLAGS)
-ifeq ($(DEBUG),1)
-	N64_CFLAGS += -g -O0 -DDEBUG -DDEBUG_MODE=1
-	N64_LDFLAGS += -g
-else
-	N64_CFLAGS += -Os -DDEBUG_MODE=0
+TARGET_STR := "ModemQuest"
+ROM := $(TARGET).z64
+ELF := $(BUILD_DIR)/$(TARGET).elf
+DFS := $(BUILD_DIR)/$(TARGET).dfs
+N64_CFLAGS += -Wall -Wextra -Werror -Os $(INC_FLAGS)
+ifeq ($(DEBUG_ENABLED),1)
+	N64_CFLAGS += -DDEBUG_ENABLED
 endif
 
-default: $(ROM)
-$(ROM): N64_ROM_TITLE="MODEMQUEST"
-$(ROM): $(ELF)
-$(ROM): $(DFS)
-$(ELF): $(O_FILES)
-$(DFS): $(ASSETS_CONV)
+ASSETS_PNG := $(wildcard assets/*.png)
+ASSETS_WAV := $(wildcard assets/*.wav)
+ASSETS_TTF := $(wildcard assets/*.ttf)
+ASSETS_MAP := $(wildcard assets/*.map)
+ASSETS_CONV := \
+	$(ASSETS_PNG:assets/%.png=filesystem/%.sprite) \
+	$(ASSETS_WAV:assets/%.wav=filesystem/%.wav64) \
+	$(ASSETS_TTF:assets/%.ttf=filesystem/%.font64) \
+	$(ASSETS_MAP:assets/%.map=filesystem/%.map)
 
-filesystem/%.font64: assets/%.ttf
-	@mkdir -p $(dir $@)
-	@echo "    [FONT] $@"
-	$(N64_MKFONT) $(MKFONT_FLAGS) -o filesystem "$<"
+final: $(ROM)
+$(ROM): N64_ROM_TITLE=$(TARGET_STR)
+$(ROM): $(DFS) 
+$(DFS): $(ASSETS_CONV)
+$(ELF): $(O_FILES)
+
+AUDIOCONV_FLAGS := --wav-compress 1
+MKSPRITE_FLAGS := --compress 1
+MKFONT_FLAGS := --compress 1
 
 filesystem/%.sprite: assets/%.png
 	@mkdir -p $(dir $@)
 	@echo "    [SPRITE] $@"
 	$(N64_MKSPRITE) $(MKSPRITE_FLAGS) -o filesystem "$<"
 
+filesystem/%.wav64: assets/%.wav
+	@mkdir -p $(dir $@)
+	@echo "    [AUDIO] $@"
+	$(N64_AUDIOCONV) $(AUDIOCONV_FLAGS) -o filesystem "$<"
+
+filesystem/%.font64: assets/%.ttf
+	@mkdir -p $(dir $@)
+	@echo "    [FONT] $@"
+	$(N64_MKFONT) $(MKFONT_FLAGS) -o filesystem "$<"
+
 filesystem/%.map: assets/%.map
 	@mkdir -p $(dir $@)
-	@echo "    [MAP] $@"
+	@echo "    [MQ-MAP] $@"
 	cp $< $@
 
 clean:
-	rm -rf $(BUILD_DIR) $(ROM) filesystem/
+	rm -rf $(ROM) $(BUILD_DIR) filesystem
 
-FORMAT_SCAN := $(H_FILES) $(C_FILES)
+format: $(H_FILES) $(C_FILES)
+	clang-format --style=file -i $^
 
-format:
-	clang-format -i --style=file $(FORMAT_SCAN)
-
--include $(D_FILES)
+-include $(wildcard $(BUILD_DIR)/*.d)

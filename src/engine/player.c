@@ -1,0 +1,229 @@
+#include <libdragon.h>
+
+#include "input.h"
+#include "config.h"
+#include "rdpq_ext.h"
+#include "util.h"
+
+#include "engine/tilemap.h"
+#include "engine/player.h"
+
+#define PLAYER_MOVE_PXLS_PER_SEC 60
+
+player_t player;
+
+void player_init(const vec2i pos)
+{
+	snprintf(player.name, PLAYER_NAME_MAX_LEN, "%s", "Timmy");
+	vec2i_copy(player.pos, pos);
+	vec2f_set(player.pos_goal_a, pos[0] * TILE_SIZE_PXLS,
+		  pos[1] * TILE_SIZE_PXLS);
+	vec2f_copy(player.pos_goal_b, player.pos_goal_a);
+	vec2f_copy(player.pos_goal_a_old, player.pos_goal_a);
+	vec2f_copy(player.pos_goal_b_old, player.pos_goal_b);
+	player.dir = PLAYER_DIR_DOWN;
+	player.move_timer = player.move_timer_old = 0.f;
+	player.flags = 0;
+	debugf("INITIALIZED PLAYER '%s'\n", player.name);
+}
+
+void player_get_pos_lerped(vec2f v, const float subtick)
+{
+	const float move_timer_lerp =
+		lerpf(player.move_timer_old, player.move_timer, subtick);
+	const float t = (float)(PLAYER_MOVE_TIMER_MAX - move_timer_lerp) /
+			PLAYER_MOVE_TIMER_MAX;
+	vec2f goal_a_lerp, goal_b_lerp;
+	vec2f_lerp(goal_a_lerp, player.pos_goal_a_old, player.pos_goal_a,
+		   subtick);
+	vec2f_lerp(goal_b_lerp, player.pos_goal_b_old, player.pos_goal_b,
+		   subtick);
+
+	vec2f_lerp(v, goal_a_lerp, goal_b_lerp, t);
+	vec2f_round(v);
+}
+
+static void _player_update_moving(vec2i move, const float dt)
+{
+	vec2i dpad = { INPUT_GET_BTN(DPAD_RIGHT, HELD) -
+			       INPUT_GET_BTN(DPAD_LEFT, HELD),
+		       INPUT_GET_BTN(DPAD_DOWN, HELD) -
+			       INPUT_GET_BTN(DPAD_UP, HELD) };
+	int is_trying_to_move = (INPUT_GET_STICK(X) || INPUT_GET_STICK(Y) ||
+				 dpad[0] || dpad[1]);
+
+	if (is_trying_to_move) {
+		player.move_timer -=
+			((INPUT_GET_BTN(Z, HELD) | INPUT_GET_BTN(L, HELD)) +
+			 1) *
+			dt * PLAYER_MOVE_PXLS_PER_SEC;
+	} else if (player.move_timer > 0) {
+		player.move_timer -= dt * PLAYER_MOVE_PXLS_PER_SEC;
+	}
+
+	if (player.move_timer > 0) {
+		vec2i_zero(move);
+		return;
+	}
+
+	vec2i_set(move,
+		  (INPUT_GET_STICK(X) > 0) - (INPUT_GET_STICK(X) < 0) + dpad[0],
+		  (INPUT_GET_STICK(Y) < 0) - (INPUT_GET_STICK(Y) > 0) +
+			  dpad[1]);
+}
+
+static void _player_update_collision(const vec2i pos_old, const vec2i move,
+				     vec2i pos_new_out)
+{
+	vec2i pos_new;
+
+	vec2i_add(pos_new, pos_old, move);
+
+	for (int i = 0; i < 4; i++) {
+		/* order: up-right, up-left, down-right, down-left */
+		const vec2i poslut[4] = {
+			{ 1, 1 },
+			{ -1, 1 },
+			{ 1, -1 },
+			{ -1, -1 },
+		};
+
+		if (pos_new[0] != pos_old[0] + poslut[i][0] ||
+		    pos_new[1] != pos_old[1] + poslut[i][1]) {
+			// debugf("Skipping this\n");
+			continue;
+		}
+
+		if (TILE_TYPE_IS_COLLIDABLE(
+			    tilemap_get_tile(pos_old[0] + poslut[i][0],
+					     pos_old[1])
+				    ->type)) {
+			pos_new[0] = pos_old[0];
+		}
+
+		if (TILE_TYPE_IS_COLLIDABLE(
+			    tilemap_get_tile(pos_old[0],
+					     pos_old[1] + poslut[i][1])
+				    ->type)) {
+			// debugf("Pos Y is collidable\n");
+			pos_new[1] = pos_old[1];
+		}
+
+		if (TILE_TYPE_IS_COLLIDABLE(
+			    tilemap_get_tile(pos_old[0] + poslut[i][0],
+					     pos_old[1] + poslut[i][1])
+				    ->type)) {
+			if ((int)fabsf((float)move[0]) >
+			    (int)fabsf((float)move[1])) {
+				pos_new[1] = pos_old[1];
+			} else {
+				pos_new[0] = pos_old[0];
+			}
+		}
+	}
+
+	if (TILE_TYPE_IS_COLLIDABLE(
+		    tilemap_get_tile(pos_new[0], pos_new[1])->type)) {
+		vec2i_copy(pos_new, pos_old);
+		player.move_timer = 0.f;
+	}
+
+	vec2i_copy(pos_new_out, pos_new);
+}
+
+static void _player_update_direction(const vec2i pos_old, const vec2i pos_new)
+{
+	vec2i delta;
+	vec2i_sub(delta, pos_new, pos_old);
+
+	if (delta[1] > 0)
+		player.dir = PLAYER_DIR_DOWN;
+	if (delta[1] < 0)
+		player.dir = PLAYER_DIR_UP;
+	if (delta[0] > 0)
+		player.dir = PLAYER_DIR_RIGHT;
+	if (delta[0] < 0)
+		player.dir = PLAYER_DIR_LEFT;
+}
+
+void player_update(const float dt)
+{
+	/* if we're talking, we can't move */
+	if (player.flags & PLAYER_FLAG_IS_TALKING) {
+		return;
+	}
+
+	vec2i pos_old, pos_new, move;
+
+	/* old values */
+	vec2i_copy(pos_old, player.pos);
+	vec2f_copy(player.pos_goal_a_old, player.pos_goal_a);
+	vec2f_copy(player.pos_goal_b_old, player.pos_goal_b);
+	player.move_timer_old = player.move_timer;
+
+	_player_update_moving(move, dt);
+	_player_update_collision(pos_old, move, pos_new);
+	_player_update_direction(pos_old, pos_new);
+
+	while (player.move_timer < 0.f) {
+		vec2i_copy(player.pos, pos_new);
+		vec2f_scale(player.pos_goal_a,
+			    (const vec2f){ pos_old[0], pos_old[1] },
+			    TILE_SIZE_PXLS);
+		vec2f_scale(player.pos_goal_b,
+			    (const vec2f){ pos_new[0], pos_new[1] },
+			    TILE_SIZE_PXLS);
+		player.move_timer += PLAYER_MOVE_TIMER_MAX;
+	}
+}
+
+void player_render(const float subtick)
+{
+	const uint16_t col = (0x06 << 11) | (0x11 << 6) | (0x15 << 1) | 1;
+	vec2f pos;
+
+	player_get_pos_lerped(pos, subtick);
+	pos[0] = fminf(pos[0], (DISPLAY_WIDTH >> 1) - (TILE_SIZE_PXLS >> 1));
+	pos[1] = fminf(pos[1], (DISPLAY_HEIGHT >> 1) - (TILE_SIZE_PXLS >> 1));
+	rdpq_fill_rect_border(pos[0], pos[1], pos[0] + TILE_SIZE_PXLS,
+			      pos[1] + TILE_SIZE_PXLS, col, 2);
+
+	/* direction */
+	const int rects[NUM_PLAYER_DIRS][4] = {
+		{
+			/* up */
+			pos[0] + (TILE_SIZE_PXLS >> 1) - 1,
+			pos[1] + 0,
+			pos[0] + (TILE_SIZE_PXLS >> 1) + 1,
+			pos[1] + 6,
+		},
+		{
+			/* down */
+			pos[0] + (TILE_SIZE_PXLS >> 1) - 1,
+			pos[1] + TILE_SIZE_PXLS - 6,
+			pos[0] + (TILE_SIZE_PXLS >> 1) + 1,
+			pos[1] + TILE_SIZE_PXLS,
+		},
+		{
+			/* left */
+			pos[0] + 0,
+			pos[1] + (TILE_SIZE_PXLS >> 1) - 1,
+			pos[0] + 6,
+			pos[1] + (TILE_SIZE_PXLS >> 1) + 1,
+		},
+		{
+			/* right */
+			pos[0] + TILE_SIZE_PXLS - 6,
+			pos[1] + (TILE_SIZE_PXLS >> 1) - 1,
+			pos[0] + TILE_SIZE_PXLS,
+			pos[1] + (TILE_SIZE_PXLS >> 1) + 1,
+		},
+	};
+
+	rdpq_fill_rectangle(rects[player.dir][0], rects[player.dir][1],
+			    rects[player.dir][2], rects[player.dir][3]);
+}
+
+void player_terminate(void)
+{
+}

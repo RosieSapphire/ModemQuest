@@ -2,7 +2,7 @@
 #define _MAPPY_NUKLEAR_INST_H_
 
 #include "nuklear.h"
-#include "glwin.h"
+#include "input.h"
 
 #define joypad_buttons_t void * /* ignore this illegal bullshit */
 #include "game/npc.h"
@@ -22,15 +22,13 @@ extern npc_t npc_selected;
 
 /* base */
 void nuklear_inst_init(void);
-void nuklear_inst_render(const glwin_input_t *inp, const char *outpath,
-			 const int mx_tile, const int my_tile, const float dt);
+void nuklear_inst_render(const char *outpath, const int mouse[2],
+			 const float dt);
 void nuklear_inst_terminate(void);
 
 /* panels */
 void nuklear_inst_panel_project(const char *outpath, const float dt);
-void nuklear_inst_panel_tile_selected(const glwin_input_t *inp,
-				      const int mx_tile,
-				      const int my_tile);
+void nuklear_inst_panel_tile_selected(const int mouse_tile[2]);
 void nuklear_inst_panel_npc(void);
 
 #endif /* _MAPPY_NUKLEAR_INST_H_ */

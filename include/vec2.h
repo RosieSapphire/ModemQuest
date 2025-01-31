@@ -1,41 +1,23 @@
-#ifndef _ENGINE_VEC2_H_
-#define _ENGINE_VEC2_H_
+#ifndef _VEC2_H_
+#define _VEC2_H_
 
 typedef float vec2f[2];
 typedef int vec2i[2];
 
-#define VEC2_SET(DST, X, Y) \
-	do {                \
-		DST[0] = X; \
-		DST[1] = Y; \
-	} while (0)
-#define VEC2_COPY(DST, SRC) VEC2_SET(DST, SRC[0], SRC[1])
-#define VEC2_ZERO(DST) VEC2_SET(DST, 0, 0)
+void vec2f_zero(vec2f dst);
+void vec2f_set(vec2f dst, const float x, const float y);
+void vec2f_copy(vec2f dst, const vec2f src);
+void vec2f_add(vec2f dst, const vec2f a, const vec2f b);
+void vec2f_sub(vec2f dst, const vec2f a, const vec2f b);
+void vec2f_lerp(vec2f dst, const vec2f a, const vec2f b, const float t);
+void vec2f_round(vec2f dst);
+void vec2f_scale(vec2f dst, const vec2f a, const float s);
 
-#define VEC2_ADD(DST, A, B)           \
-	do {                          \
-		DST[0] = A[0] + B[0]; \
-		DST[1] = A[1] + B[1]; \
-	} while (0)
-#define VEC2_SUB(DST, A, B)           \
-	do {                          \
-		DST[0] = A[0] - B[0]; \
-		DST[1] = A[1] - B[1]; \
-	} while (0)
-#define VEC2_SCALE(DST, X, S)      \
-	do {                       \
-		DST[0] = X[0] * S; \
-		DST[1] = X[1] * S; \
-	} while (0)
-#define VEC2_ROUND(X)                \
-	do {                         \
-		X[0] = roundf(X[0]); \
-		X[1] = roundf(X[1]); \
-	} while (0)
-#define VEC2_LERP(DST, A, B, T)                    \
-	do {                                       \
-		DST[0] = A[0] + (B[0] - A[0]) * T; \
-		DST[1] = A[1] + (B[1] - A[1]) * T; \
-	} while (0)
+void vec2i_zero(vec2i dst);
+void vec2i_set(vec2i dst, const int x, const int y);
+void vec2i_copy(vec2i dst, const vec2i src);
+void vec2i_add(vec2i dst, const vec2i a, const vec2i b);
+void vec2i_sub(vec2i dst, const vec2i a, const vec2i b);
+void vec2i_lerp(vec2i dst, const vec2i a, const vec2i b, const float t);
 
-#endif /* _ENGINE_VEC2_H_ */
+#endif /* _VEC2_H_ */

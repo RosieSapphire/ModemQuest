@@ -36,7 +36,7 @@ void testarea_render(const float subtick)
 	tilemap_render(subtick);
 	player_render(subtick);
 	tilemap_render_npc_dialogue_boxes();
-	fade_transition_render();
+	fade_transition_render(subtick);
 }
 
 void testarea_terminate(void)

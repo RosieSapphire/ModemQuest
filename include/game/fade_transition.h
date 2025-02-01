@@ -11,7 +11,7 @@ enum {
 void fade_transition_init(void);
 void fade_transition_set(const int fade_state_new);
 int fade_transition_update(const int attempting_exit, const float dt);
-void fade_transition_render(void);
+void fade_transition_render(const float subtick);
 void fade_transition_terminate(void);
 
 #endif /* _GAME_FADE_TRANSITION_H_ */

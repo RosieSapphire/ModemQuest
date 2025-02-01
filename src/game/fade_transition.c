@@ -1,6 +1,7 @@
 #include <libdragon.h>
 
 #include "config.h"
+#include "util.h"
 
 #include "game/fade_transition.h"
 
@@ -13,6 +14,7 @@ static sprite_t *circle_spr = NULL;
 
 static int fade_transition_state = FADE_TRANSITION_DISABLED;
 static float fade_transition_radius = FADE_RADIUS_MAX;
+static float fade_transition_radius_old = FADE_RADIUS_MAX;
 
 static int is_exiting_current_scene = false;
 
@@ -20,7 +22,7 @@ void fade_transition_init(void)
 {
 	circle_spr = sprite_load("rom:/fade-circle.ia4.sprite");
 	fade_transition_state = FADE_TRANSITION_DISABLED;
-	fade_transition_radius = FADE_RADIUS_MAX;
+	fade_transition_radius = fade_transition_radius_old = 0.f;
 	is_exiting_current_scene = false;
 }
 
@@ -37,6 +39,9 @@ int fade_transition_update(const int attempting_exit, const float dt)
 	const int exit_condition = attempting_exit & ~is_exiting_current_scene;
 
 	is_exiting_current_scene ^= exit_condition;
+
+	/* old values */
+	fade_transition_radius_old = fade_transition_radius;
 
 	if (exit_condition && !is_exiting_current_scene) {
 		is_exiting_current_scene = true;
@@ -63,25 +68,25 @@ int fade_transition_update(const int attempting_exit, const float dt)
 	return 0;
 }
 
-void fade_transition_render(void)
+void fade_transition_render(const float subtick)
 {
-	if (fade_transition_radius == FADE_RADIUS_MAX ||
+	const float radius_lerp = lerpf(fade_transition_radius_old,
+					fade_transition_radius, subtick);
+
+	if (radius_lerp == FADE_RADIUS_MAX ||
 	    fade_transition_state == FADE_TRANSITION_DISABLED) {
 		return;
 	}
 
-	const int double_fade_radius_rounded =
-		(int)roundf(fade_transition_radius) >> 1;
-	const int rect[4] = {
-		-double_fade_radius_rounded + (DISPLAY_WIDTH >> 1),
-		-double_fade_radius_rounded + (DISPLAY_HEIGHT >> 1),
-		double_fade_radius_rounded + (DISPLAY_WIDTH >> 1),
-		double_fade_radius_rounded + (DISPLAY_HEIGHT >> 1)
-	};
+	const int double_radius_rounded = (int)roundf(radius_lerp) >> 1;
+	const int rect[4] = { -double_radius_rounded + (DISPLAY_WIDTH >> 1),
+			      -double_radius_rounded + (DISPLAY_HEIGHT >> 1),
+			      double_radius_rounded + (DISPLAY_WIDTH >> 1),
+			      double_radius_rounded + (DISPLAY_HEIGHT >> 1) };
 
-	/* FIXME: Maybe don't use a GOTO? Not sure yet. lol */
-	if (!fade_transition_radius) {
-		goto draw_black;
+	if (!radius_lerp) {
+		rdpq_clear(color_from_packed16(0x0));
+		return;
 	}
 
 	/* CENTER PORTION */
@@ -100,11 +105,6 @@ void fade_transition_render(void)
 	rdpq_fill_rectangle(rect[2], 0, DISPLAY_WIDTH, DISPLAY_HEIGHT);
 	rdpq_fill_rectangle(rect[0], 0, rect[2], rect[1]);
 	rdpq_fill_rectangle(rect[0], rect[3], rect[2], DISPLAY_HEIGHT);
-
-	return;
-
-draw_black:
-	rdpq_clear(color_from_packed16(0x0));
 }
 
 void fade_transition_terminate(void)

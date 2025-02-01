@@ -115,7 +115,7 @@ void title_render(const float subtick)
 		    "A Homebrew N64 Original by\n"
 		    "Aeryk Ressler & Rosie Sapphire");
 
-	fade_transition_render();
+	fade_transition_render(subtick);
 }
 
 void title_terminate(void)

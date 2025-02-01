@@ -43,15 +43,9 @@ void player_get_pos_lerped(vec2f v, const float subtick)
 	vec2f_round(v);
 }
 
-static void _player_update_moving(vec2i move, const float dt)
+static void _player_update_moving(vec2i move, const float dt,
+				  const int is_trying_to_move, const vec2i dpad)
 {
-	vec2i dpad = { INPUT_GET_BTN(DPAD_RIGHT, HELD) -
-			       INPUT_GET_BTN(DPAD_LEFT, HELD),
-		       INPUT_GET_BTN(DPAD_DOWN, HELD) -
-			       INPUT_GET_BTN(DPAD_UP, HELD) };
-	int is_trying_to_move = (INPUT_GET_STICK(X) || INPUT_GET_STICK(Y) ||
-				 dpad[0] || dpad[1]);
-
 	if (is_trying_to_move) {
 		player.move_timer -=
 			((INPUT_GET_BTN(Z, HELD) | INPUT_GET_BTN(L, HELD)) +
@@ -153,6 +147,12 @@ void player_update(const float dt)
 		return;
 	}
 
+	vec2i dpad = { INPUT_GET_BTN(DPAD_RIGHT, HELD) -
+			       INPUT_GET_BTN(DPAD_LEFT, HELD),
+		       INPUT_GET_BTN(DPAD_DOWN, HELD) -
+			       INPUT_GET_BTN(DPAD_UP, HELD) };
+	int is_trying_to_move = (INPUT_GET_STICK(X) || INPUT_GET_STICK(Y) ||
+				 dpad[0] || dpad[1]);
 	vec2i pos_old, pos_new, move;
 
 	/* old values */
@@ -161,11 +161,16 @@ void player_update(const float dt)
 	vec2f_copy(player.pos_goal_b_old, player.pos_goal_b);
 	player.move_timer_old = player.move_timer;
 
-	_player_update_moving(move, dt);
+	_player_update_moving(move, dt, is_trying_to_move, dpad);
 	_player_update_collision(pos_old, move, pos_new);
 	_player_update_direction(pos_old, pos_new);
 
-	while (player.move_timer < 0.f) {
+	/* next moving step */
+	if (player.move_timer >= 0.f) {
+		return;
+	}
+
+	if (is_trying_to_move) {
 		vec2i_copy(player.pos, pos_new);
 		vec2f_scale(player.pos_goal_a,
 			    (const vec2f){ pos_old[0], pos_old[1] },
@@ -173,50 +178,85 @@ void player_update(const float dt)
 		vec2f_scale(player.pos_goal_b,
 			    (const vec2f){ pos_new[0], pos_new[1] },
 			    TILE_SIZE_PXLS);
+		vec2f_copy(player.pos_goal_a_old, player.pos_goal_a);
 		player.move_timer += PLAYER_MOVE_TIMER_MAX;
+		player.move_timer_old += PLAYER_MOVE_TIMER_MAX;
+		return;
 	}
+
+	player.move_timer = 0.f;
+	vec2f_copy(player.pos_goal_a, player.pos_goal_b);
 }
 
 void player_render(const float subtick)
 {
 	const uint16_t col = (0x06 << 11) | (0x11 << 6) | (0x15 << 1) | 1;
-	vec2f pos;
+	vec2f real_pos;
 
-	player_get_pos_lerped(pos, subtick);
-	pos[0] = fminf(pos[0], (DISPLAY_WIDTH >> 1) - (TILE_SIZE_PXLS >> 1));
-	pos[1] = fminf(pos[1], (DISPLAY_HEIGHT >> 1) - (TILE_SIZE_PXLS >> 1));
-	rdpq_fill_rect_border(pos[0], pos[1], pos[0] + TILE_SIZE_PXLS,
-			      pos[1] + TILE_SIZE_PXLS, col, 2);
+	player_get_pos_lerped(real_pos, subtick);
+
+	// debug goal points a and b
+	/*
+	const uint16_t col2 = (0x03 << 11) | (0x8 << 6) | (0xA << 1) | 1;
+	vec2f goal_a_pos;
+	vec2f_copy(goal_a_pos, player.pos_goal_a);
+
+	goal_a_pos[0] = fminf(goal_a_pos[0],
+			      (DISPLAY_WIDTH >> 1) - (TILE_SIZE_PXLS >> 1));
+	goal_a_pos[1] = fminf(goal_a_pos[1],
+			      (DISPLAY_HEIGHT >> 1) - (TILE_SIZE_PXLS >> 1));
+	rdpq_fill_rect_border(player.pos_goal_a[0], player.pos_goal_a[1],
+			      player.pos_goal_a[0] + TILE_SIZE_PXLS,
+			      player.pos_goal_a[1] + TILE_SIZE_PXLS, col2, 2);
+
+	vec2f goal_b_pos;
+	vec2f_copy(goal_b_pos, player.pos_goal_b);
+	goal_b_pos[0] = fminf(goal_b_pos[0],
+			      (DISPLAY_WIDTH >> 1) - (TILE_SIZE_PXLS >> 1));
+	goal_b_pos[1] = fminf(goal_b_pos[1],
+			      (DISPLAY_HEIGHT >> 1) - (TILE_SIZE_PXLS >> 1));
+	rdpq_fill_rect_border(player.pos_goal_b[0], player.pos_goal_b[1],
+			      player.pos_goal_b[0] + TILE_SIZE_PXLS,
+			      player.pos_goal_b[1] + TILE_SIZE_PXLS, col2, 2);
+			      */
+
+	real_pos[0] = fminf(real_pos[0],
+			    (DISPLAY_WIDTH >> 1) - (TILE_SIZE_PXLS >> 1));
+	real_pos[1] = fminf(real_pos[1],
+			    (DISPLAY_HEIGHT >> 1) - (TILE_SIZE_PXLS >> 1));
+	rdpq_fill_rect_border(real_pos[0], real_pos[1],
+			      real_pos[0] + TILE_SIZE_PXLS,
+			      real_pos[1] + TILE_SIZE_PXLS, col, 2);
 
 	/* direction */
 	const int rects[NUM_PLAYER_DIRS][4] = {
 		{
 			/* up */
-			pos[0] + (TILE_SIZE_PXLS >> 1) - 1,
-			pos[1] + 0,
-			pos[0] + (TILE_SIZE_PXLS >> 1) + 1,
-			pos[1] + 6,
+			real_pos[0] + (TILE_SIZE_PXLS >> 1) - 1,
+			real_pos[1] + 0,
+			real_pos[0] + (TILE_SIZE_PXLS >> 1) + 1,
+			real_pos[1] + 6,
 		},
 		{
 			/* down */
-			pos[0] + (TILE_SIZE_PXLS >> 1) - 1,
-			pos[1] + TILE_SIZE_PXLS - 6,
-			pos[0] + (TILE_SIZE_PXLS >> 1) + 1,
-			pos[1] + TILE_SIZE_PXLS,
+			real_pos[0] + (TILE_SIZE_PXLS >> 1) - 1,
+			real_pos[1] + TILE_SIZE_PXLS - 6,
+			real_pos[0] + (TILE_SIZE_PXLS >> 1) + 1,
+			real_pos[1] + TILE_SIZE_PXLS,
 		},
 		{
 			/* left */
-			pos[0] + 0,
-			pos[1] + (TILE_SIZE_PXLS >> 1) - 1,
-			pos[0] + 6,
-			pos[1] + (TILE_SIZE_PXLS >> 1) + 1,
+			real_pos[0] + 0,
+			real_pos[1] + (TILE_SIZE_PXLS >> 1) - 1,
+			real_pos[0] + 6,
+			real_pos[1] + (TILE_SIZE_PXLS >> 1) + 1,
 		},
 		{
 			/* right */
-			pos[0] + TILE_SIZE_PXLS - 6,
-			pos[1] + (TILE_SIZE_PXLS >> 1) - 1,
-			pos[0] + TILE_SIZE_PXLS,
-			pos[1] + (TILE_SIZE_PXLS >> 1) + 1,
+			real_pos[0] + TILE_SIZE_PXLS - 6,
+			real_pos[1] + (TILE_SIZE_PXLS >> 1) - 1,
+			real_pos[0] + TILE_SIZE_PXLS,
+			real_pos[1] + (TILE_SIZE_PXLS >> 1) + 1,
 		},
 	};
 

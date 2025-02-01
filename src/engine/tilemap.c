@@ -87,17 +87,33 @@ void tilemap_render(const float subtick)
 	vec2f player_pos;
 	player_get_pos_lerped(player_pos, subtick);
 
-	vec2i offset = {
-		fmaxf(player_pos[0] -
-			      ((DISPLAY_WIDTH >> 1) - (TILE_SIZE_PXLS >> 1)),
-		      0),
-		fmaxf(player_pos[1] -
-			      ((DISPLAY_HEIGHT >> 1) - (TILE_SIZE_PXLS >> 1)),
-		      0),
-	};
+	vec2i offset = { 0, 0 };
 
-	for (int y = 0; y < tilemap_height; y++) {
-		for (int x = 0; x < tilemap_width; x++) {
+	if (player_pos[0] - PLAYER_RENDER_POS_X_MAX < 0) {
+		offset[0] = 0;
+	} else {
+		offset[0] = player_pos[0] - PLAYER_RENDER_POS_X_MAX;
+	}
+
+	if (player_pos[1] - PLAYER_RENDER_POS_Y_MAX < 0) {
+		offset[1] = 0;
+	} else {
+		offset[1] = player_pos[1] - PLAYER_RENDER_POS_Y_MAX;
+	}
+
+	/* TODO: Make the bottom right corner of the map clamp properly */
+	/*
+	if (offset[0] > 10 * TILE_SIZE_PXLS) {
+		offset[0] = 10 * TILE_SIZE_PXLS;
+	}
+	*/
+
+	const int x_min = offset[0] >> 5;
+	const int x_max = x_min + 11;
+	const int y_min = offset[1] >> 5;
+	const int y_max = y_min + 11;
+	for (int y = y_min; y < y_max; y++) {
+		for (int x = x_min; x < x_max; x++) {
 			int xo = (x * TILE_SIZE_PXLS) - offset[0];
 			int yo = (y * TILE_SIZE_PXLS) - offset[1];
 

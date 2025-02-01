@@ -220,10 +220,13 @@ void player_render(const float subtick)
 			      player.pos_goal_b[1] + TILE_SIZE_PXLS, col2, 2);
 			      */
 
-	real_pos[0] = fminf(real_pos[0],
-			    (DISPLAY_WIDTH >> 1) - (TILE_SIZE_PXLS >> 1));
-	real_pos[1] = fminf(real_pos[1],
-			    (DISPLAY_HEIGHT >> 1) - (TILE_SIZE_PXLS >> 1));
+	/* TODO: Make the bottom right corner of the map clamp properly */
+	if (real_pos[0] > PLAYER_RENDER_POS_X_MAX) {
+		real_pos[0] = PLAYER_RENDER_POS_X_MAX;
+	}
+	if (real_pos[1] > PLAYER_RENDER_POS_Y_MAX) {
+		real_pos[1] = PLAYER_RENDER_POS_Y_MAX;
+	}
 	rdpq_fill_rect_border(real_pos[0], real_pos[1],
 			      real_pos[0] + TILE_SIZE_PXLS,
 			      real_pos[1] + TILE_SIZE_PXLS, col, 2);

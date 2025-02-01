@@ -32,7 +32,7 @@ scene_index_t testarea_update(const float dt)
 
 void testarea_render(const float subtick)
 {
-	rdpq_clear(color_from_packed32(0xBDF2DC6F));
+	rdpq_clear(color_from_packed16(0x0));
 	tilemap_render(subtick);
 	player_render(subtick);
 	tilemap_render_npc_dialogue_boxes();

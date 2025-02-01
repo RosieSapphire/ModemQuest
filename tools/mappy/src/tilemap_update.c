@@ -1,18 +1,18 @@
 #include <stdio.h>
 
-#include "game/tilemap.h"
-
 #include "nuklear_inst.h"
 #include "endian.h"
 #include "npc.h"
 #include "window.h"
 #include "tilemap.h"
 
+#include "engine/tilemap.h"
+
 #define TILEMAP_PANNING_SPEED 512
 
 void tilemap_place_tile(const int x, const int y)
 {
-	tile_t *t = tilemap[y] + x;
+	tile_t *t = tilemap_tiles[y] + x;
 	int type_old = t->type;
 
 	t->type = tile_selected.type;
@@ -28,7 +28,7 @@ void tilemap_place_tile(const int x, const int y)
 
 void tilemap_pick_tile(const int x, const int y)
 {
-	const tile_t *t = tilemap[y] + x;
+	const tile_t *t = tilemap_tiles[y] + x;
 
 	tile_selected.type = t->type;
 	tile_selected_colf.r = (float)((t->col & 0xF800) >> 11) / 31.0f;
@@ -84,7 +84,7 @@ void tilemap_save(const char *outpath)
 	fwrite_ef16(&tilemap_num_npcs, file);
 	for (int y = 0; y < tilemap_height; y++) {
 		for (int x = 0; x < tilemap_width; x++) {
-			const tile_t *t = tilemap[y] + x;
+			const tile_t *t = tilemap_tiles[y] + x;
 
 			fwrite(&t->type, 1, 1, file);
 			fwrite_ef16(&t->col, file);
@@ -93,15 +93,15 @@ void tilemap_save(const char *outpath)
 	for (int i = 0; i < tilemap_num_npcs; i++) {
 		const npc_t *n = tilemap_npcs + i;
 
-		fwrite(n->name, 1, NPC_NAME_MAX, file);
+		fwrite(n->name, 1, NPC_NAME_MAX_LEN, file);
 		fwrite_ef16(n->pos + 0, file);
 		fwrite_ef16(n->pos + 1, file);
-		fwrite_ef16(&n->dialogue_line_cnt, file);
-		for (int j = 0; j < n->dialogue_line_cnt; j++) {
+		fwrite_ef16(&n->num_dialogue_lines, file);
+		for (int j = 0; j < n->num_dialogue_lines; j++) {
 			const dialogue_line_t *dl = n->dialogue + j;
 
-			fwrite(dl->speaker, 1, NPC_NAME_MAX, file);
-			fwrite(dl->line, 1, DIALOGUE_LINE_MAX, file);
+			fwrite(dl->speaker, 1, NPC_NAME_MAX_LEN, file);
+			fwrite(dl->line, 1, NPC_DIALOGUE_LINE_MAX_LEN, file);
 		}
 	}
 
@@ -115,11 +115,12 @@ void tilemap_update_panning(const float dt)
 		return;
 
 	for (int i = 0; i < INPUT_GET_KEY(SHIFT, HELD) + 1; i++) {
-		const int px_min =
-			-((window_width - 180) - (tilemap_width * TILE_SIZE));
+		const int px_min = -((window_width - 180) -
+				     (tilemap_width * TILE_SIZE_PXLS));
 		const int px_max = 0;
-		const int py_min = -((window_height - 180) -
-				     (((tilemap_height >> 1) - 1) * TILE_SIZE));
+		const int py_min =
+			-((window_height - 180) -
+			  (((tilemap_height >> 1) - 1) * TILE_SIZE_PXLS));
 		const int py_max = -128;
 
 		tilemap_pan_x +=

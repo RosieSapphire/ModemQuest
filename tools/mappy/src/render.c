@@ -4,13 +4,12 @@
 #include <cglm/cglm.h>
 
 #include "config.h"
-#include "types.h"
 #include "nuklear_inst.h"
 #include "window.h"
 #include "render.h"
 
 /* constants */
-static const u16 tile_indis[6] = { 0, 2, 1, 2, 3, 1 };
+static const uint16_t tile_indis[6] = { 0, 2, 1, 2, 3, 1 };
 
 static const char *vertshd_src =
 	"#version 330 core\n"
@@ -36,13 +35,13 @@ static const char *fragshd_src = "#version 330 core\n"
 				 "}\n";
 
 /* variables */
-static u32 rect_shader, rect_vao, rect_vbo, rect_ebo;
+static uint32_t rect_shader, rect_vao, rect_vbo, rect_ebo;
 static mat4 mat_proj;
 
 static void render_shader_compile(void)
 {
-	u32 vert = glCreateShader(GL_VERTEX_SHADER);
-	u32 frag = glCreateShader(GL_FRAGMENT_SHADER);
+	uint32_t vert = glCreateShader(GL_VERTEX_SHADER);
+	uint32_t frag = glCreateShader(GL_FRAGMENT_SHADER);
 	int vert_stat, frag_stat, prog_stat;
 	char log[512];
 

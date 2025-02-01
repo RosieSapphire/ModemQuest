@@ -3,12 +3,13 @@
 #include <GL/glew.h>
 
 #include "config.h"
-#include "game/tilemap.h"
 #include "render.h"
 #include "endian.h"
 #include "nuklear_inst.h"
 #include "window.h"
 #include "tilemap.h"
+
+#include "engine/tilemap.h"
 
 #define TILEMAP_WIDTH_DEFAULT 10
 #define TILEMAP_HEIGHT_DEFAULT 10
@@ -16,17 +17,16 @@
 #undef TILE_SIZE
 #define TILE_SIZE (tilemap_is_zoomed ? 64 : 32)
 
-u16 tilemap_width, tilemap_height, tilemap_num_npcs;
-tile_t tilemap[TILEMAP_HEIGHT_MAX][TILEMAP_WIDTH_MAX];
-npc_t tilemap_npcs[TILEMAP_NPC_MAX];
+uint16_t tilemap_width, tilemap_height, tilemap_num_npcs;
+tile_t tilemap_tiles[TILEMAP_HEIGHT_MAX][TILEMAP_WIDTH_MAX];
+npc_t tilemap_npcs[TILEMAP_NUM_NPCS_MAX];
 tile_t tile_selected = { TILE_TYPE_FLOOR, 0xFFFF };
 int tilemap_pan_x, tilemap_pan_y, tilemap_is_zoomed;
 
 void tilemap_load_mappy(const char *path)
 {
-	tilemap_pan_x = 0;
+	tilemap_pan_x = tilemap_is_zoomed = 0;
 	tilemap_pan_y = -128;
-	tilemap_is_zoomed = 0;
 
 	FILE *file = fopen(path, "rb");
 
@@ -37,8 +37,8 @@ void tilemap_load_mappy(const char *path)
 		tilemap_num_npcs = 0;
 		for (int y = 0; y < TILEMAP_HEIGHT_MAX; y++) {
 			for (int x = 0; x < TILEMAP_WIDTH_MAX; x++) {
-				tilemap[y][x].type = TILE_TYPE_FLOOR;
-				tilemap[y][x].col = 0xFFFF;
+				tilemap_tiles[y][x].type = TILE_TYPE_FLOOR;
+				tilemap_tiles[y][x].col = 0xFFFF;
 			}
 		}
 
@@ -50,7 +50,7 @@ void tilemap_load_mappy(const char *path)
 	fread_ef16(&tilemap_num_npcs, file);
 	for (int y = 0; y < tilemap_height; y++) {
 		for (int x = 0; x < tilemap_width; x++) {
-			tile_t *t = tilemap[y] + x;
+			tile_t *t = tilemap_tiles[y] + x;
 
 			fread(&t->type, 1, 1, file);
 			fread_ef16(&t->col, file);
@@ -59,15 +59,15 @@ void tilemap_load_mappy(const char *path)
 	for (int i = 0; i < tilemap_num_npcs; i++) {
 		npc_t *n = tilemap_npcs + i;
 
-		fread(n->name, 1, NPC_NAME_MAX, file);
+		fread(n->name, 1, NPC_NAME_MAX_LEN, file);
 		fread_ef16(n->pos + 0, file);
 		fread_ef16(n->pos + 1, file);
-		fread_ef16(&n->dialogue_line_cnt, file);
-		for (int j = 0; j < n->dialogue_line_cnt; j++) {
+		fread_ef16(&n->num_dialogue_lines, file);
+		for (int j = 0; j < n->num_dialogue_lines; j++) {
 			dialogue_line_t *dl = n->dialogue + j;
 
-			fread(dl->speaker, 1, NPC_NAME_MAX, file);
-			fread(dl->line, 1, DIALOGUE_LINE_MAX, file);
+			fread(dl->speaker, 1, NPC_NAME_MAX_LEN, file);
+			fread(dl->line, 1, NPC_DIALOGUE_LINE_MAX_LEN, file);
 		}
 	}
 	fclose(file);
@@ -77,13 +77,13 @@ void tilemap_unload_mappy(void)
 {
 	/* FIXME: More stuff here */
 	tilemap_width = tilemap_height = tilemap_num_npcs = 0;
-	memset(tilemap_npcs, 0, TILEMAP_NPC_MAX * sizeof *tilemap_npcs);
-	memset(tilemap, 0,
-	       TILEMAP_WIDTH_MAX * TILEMAP_HEIGHT_MAX * sizeof **tilemap);
+	memset(tilemap_npcs, 0, TILEMAP_NUM_NPCS_MAX * sizeof *tilemap_npcs);
+	memset(tilemap_tiles, 0,
+	       TILEMAP_WIDTH_MAX * TILEMAP_HEIGHT_MAX * sizeof **tilemap_tiles);
 	tilemap_pan_x = tilemap_pan_y = tilemap_is_zoomed = 0;
 }
 
-void tilemap_update(const int mouse_tile[2], const float dt)
+void tilemap_update_mappy(const int mouse_tile[2], const float dt)
 {
 	tilemap_update_panning(dt);
 
@@ -123,7 +123,7 @@ void tilemap_tile_render(const int x, const int y, int is_selected)
 
 	if (is_selected) {
 		if (!tilemap_is_mouse_in_range()) {
-			const tile_t *tile = tilemap[y] + x;
+			const tile_t *tile = tilemap_tiles[y] + x;
 
 			r = ((tile->col & 0xF800) >> 11) / 31.0f;
 			g = ((tile->col & 0x07C0) >> 6) / 31.0f;
@@ -143,7 +143,7 @@ void tilemap_tile_render(const int x, const int y, int is_selected)
 		a = 0.5f;
 		glDisable(GL_BLEND);
 	} else {
-		const tile_t *tile = tilemap[y] + x;
+		const tile_t *tile = tilemap_tiles[y] + x;
 
 		r = ((tile->col & 0xF800) >> 11) / 31.0f;
 		g = ((tile->col & 0x07C0) >> 6) / 31.0f;

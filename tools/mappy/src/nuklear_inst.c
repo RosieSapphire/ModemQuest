@@ -9,7 +9,7 @@
 #include "tilemap.h"
 #include "window.h"
 
-#include "game/tilemap.h"
+#include "engine/tilemap.h"
 
 #define FONT_SIZE 20
 
@@ -58,8 +58,8 @@ void nuklear_inst_render(const char *outpath, const int mouse[2],
 
 	for (int y = 0; y < tilemap_height; y++)
 		for (int x = 0; x < tilemap_width; x++)
-			num_spawns +=
-				(tilemap[y][x].type == TILE_TYPE_PLAYER_SPAWN);
+			num_spawns += (tilemap_tiles[y][x].type ==
+				       TILE_TYPE_PLAYER_SPAWN);
 
 	nk_glfw3_new_frame();
 	snprintf(project_str, 128, "PROJECT '%s' %d spawn(s), %d npc(s)",

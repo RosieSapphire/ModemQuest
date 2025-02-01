@@ -3,13 +3,12 @@
 #include "config.h"
 #include "rdpq_ext.h"
 
-#include "engine/npc.h"
 #include "engine/player.h"
 #include "engine/tilemap.h"
 
-static uint16_t width, height, num_npcs;
-tile_t map[TILEMAP_HEIGHT_MAX][TILEMAP_WIDTH_MAX];
-npc_t npcs[TILEMAP_NUM_NPCS_MAX];
+uint16_t tilemap_width = 0, tilemap_height = 0, tilemap_num_npcs = 0;
+tile_t tilemap_tiles[TILEMAP_HEIGHT_MAX][TILEMAP_WIDTH_MAX];
+npc_t tilemap_npcs[TILEMAP_NUM_NPCS_MAX];
 
 void tilemap_init(const char *path, vec2i spawn_pos)
 {
@@ -17,14 +16,14 @@ void tilemap_init(const char *path, vec2i spawn_pos)
 
 	assertf(file, "Failed to load tilemap from '%s'\n", path);
 
-	fread(&width, 2, 1, file);
-	fread(&height, 2, 1, file);
-	fread(&num_npcs, 2, 1, file);
+	fread(&tilemap_width, 2, 1, file);
+	fread(&tilemap_height, 2, 1, file);
+	fread(&tilemap_num_npcs, 2, 1, file);
 
 	/* tiles */
-	for (int y = 0; y < height; y++) {
-		for (int x = 0; x < width; x++) {
-			tile_t *t = map[y] + x;
+	for (int y = 0; y < tilemap_height; y++) {
+		for (int x = 0; x < tilemap_width; x++) {
+			tile_t *t = tilemap_tiles[y] + x;
 
 			fread(&t->type, 1, 1, file);
 			fread(&t->col, 2, 1, file);
@@ -32,8 +31,8 @@ void tilemap_init(const char *path, vec2i spawn_pos)
 	}
 
 	/* npcs */
-	for (int i = 0; i < num_npcs; i++) {
-		npc_t *n = npcs + i;
+	for (int i = 0; i < tilemap_num_npcs; i++) {
+		npc_t *n = tilemap_npcs + i;
 
 		fread(n->name, 1, NPC_NAME_MAX_LEN, file);
 		fread(n->pos, 2, 2, file);
@@ -56,9 +55,10 @@ void tilemap_init(const char *path, vec2i spawn_pos)
 
 	/* getting player spawn position (will only pick first one) */
 	int has_found_spawn = false;
-	for (int y = 0; y < height; y++) {
-		for (int x = 0; x < width; x++) {
-			if (map[y][x].type != TILE_TYPE_PLAYER_SPAWN) {
+	for (int y = 0; y < tilemap_height; y++) {
+		for (int x = 0; x < tilemap_width; x++) {
+			if (tilemap_tiles[y][x].type !=
+			    TILE_TYPE_PLAYER_SPAWN) {
 				continue;
 			}
 
@@ -68,17 +68,17 @@ void tilemap_init(const char *path, vec2i spawn_pos)
 		}
 	}
 
-	assertf(has_found_spawn, "Unable to find spawn point in map '%s'\n",
+	assertf(has_found_spawn, "Unable to find spawn point in tilemap '%s'\n",
 		path);
 
-	debugf("LOADED TILEMAP '%s': [%d, %d], %d npc(s)\n", path, width,
-	       height, num_npcs);
+	debugf("LOADED TILEMAP '%s': [%d, %d], %d npc(s)\n", path,
+	       tilemap_width, tilemap_height, tilemap_num_npcs);
 }
 
 void tilemap_update(void)
 {
-	for (int i = 0; i < num_npcs; i++) {
-		npc_player_interact(npcs + i);
+	for (int i = 0; i < tilemap_num_npcs; i++) {
+		npc_player_interact(tilemap_npcs + i);
 	}
 }
 
@@ -96,36 +96,31 @@ void tilemap_render(const float subtick)
 		      0),
 	};
 
-	for (int y = 0; y < height; y++) {
-		for (int x = 0; x < width; x++) {
+	for (int y = 0; y < tilemap_height; y++) {
+		for (int x = 0; x < tilemap_width; x++) {
 			int xo = (x * TILE_SIZE_PXLS) - offset[0];
 			int yo = (y * TILE_SIZE_PXLS) - offset[1];
 
 			rdpq_fill_rect_border(xo, yo, xo + TILE_SIZE_PXLS,
 					      yo + TILE_SIZE_PXLS,
-					      map[y][x].col, 2);
+					      tilemap_tiles[y][x].col, 2);
 		}
 	}
 }
 
 void tilemap_render_npc_dialogue_boxes(void)
 {
-	for (int i = 0; i < num_npcs; i++) {
-		npc_dialogue_box_render(npcs + i);
+	for (int i = 0; i < tilemap_num_npcs; i++) {
+		npc_dialogue_box_render(tilemap_npcs + i);
 	}
-}
-
-tile_t *tilemap_get_tile(const int x, const int y)
-{
-	return map[y] + x;
 }
 
 void tilemap_terminate(void)
 {
 	/*
 	memset(npcs, 0, sizeof *npcs * TILEMAP_NUM_NPCS_MAX);
-	memset(map, 0, sizeof **map * TILEMAP_WIDTH_MAX * TILEMAP_HEIGHT_MAX);
+	memset(tilemap, 0, sizeof **tilemap * TILEMAP_WIDTH_MAX * TILEMAP_HEIGHT_MAX);
 	*/
-	width = height = num_npcs = 0;
+	tilemap_width = tilemap_height = tilemap_num_npcs = 0;
 	debugf("UNLOADED TILEMAP\n");
 }

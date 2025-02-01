@@ -79,8 +79,10 @@ static void _init(const char *map_path)
 static void _update(int mouse_tile[2], const float dt)
 {
 	input_poll(window);
-	mouse_tile[0] = (INPUT_GET_MOUSE(X, NOW) + tilemap_pan_x) / TILE_SIZE;
-	mouse_tile[1] = (INPUT_GET_MOUSE(Y, NOW) + tilemap_pan_y) / TILE_SIZE;
+	mouse_tile[0] =
+		(INPUT_GET_MOUSE(X, NOW) + tilemap_pan_x) / TILE_SIZE_PXLS;
+	mouse_tile[1] =
+		(INPUT_GET_MOUSE(Y, NOW) + tilemap_pan_y) / TILE_SIZE_PXLS;
 	if (mouse_tile[0] < 0)
 		mouse_tile[0] = 0;
 	if (mouse_tile[0] >= tilemap_width)
@@ -89,7 +91,7 @@ static void _update(int mouse_tile[2], const float dt)
 		mouse_tile[1] = 0;
 	if (mouse_tile[1] >= tilemap_height)
 		mouse_tile[1] = tilemap_height - 1;
-	tilemap_update(mouse_tile, dt);
+	tilemap_update_mappy(mouse_tile, dt);
 }
 
 static void _terminate(void)

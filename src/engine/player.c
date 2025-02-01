@@ -89,24 +89,22 @@ static void _player_update_collision(const vec2i pos_old, const vec2i move,
 		}
 
 		if (TILE_TYPE_IS_COLLIDABLE(
-			    tilemap_get_tile(pos_old[0] + poslut[i][0],
-					     pos_old[1])
-				    ->type)) {
+			    tilemap_tiles[pos_old[1]][pos_old[0] + poslut[i][0]]
+				    .type)) {
 			pos_new[0] = pos_old[0];
 		}
 
 		if (TILE_TYPE_IS_COLLIDABLE(
-			    tilemap_get_tile(pos_old[0],
-					     pos_old[1] + poslut[i][1])
-				    ->type)) {
+			    tilemap_tiles[pos_old[1] + poslut[i][1]][pos_old[0]]
+				    .type)) {
 			// debugf("Pos Y is collidable\n");
 			pos_new[1] = pos_old[1];
 		}
 
 		if (TILE_TYPE_IS_COLLIDABLE(
-			    tilemap_get_tile(pos_old[0] + poslut[i][0],
-					     pos_old[1] + poslut[i][1])
-				    ->type)) {
+			    tilemap_tiles[pos_old[1] + poslut[i][1]]
+					 [pos_old[0] + poslut[i][0]]
+						 .type)) {
 			if ((int)fabsf((float)move[0]) >
 			    (int)fabsf((float)move[1])) {
 				pos_new[1] = pos_old[1];
@@ -116,8 +114,10 @@ static void _player_update_collision(const vec2i pos_old, const vec2i move,
 		}
 	}
 
+	/* if we're currently in a collidable tile (shouldn't happen),
+	 * the move us out of that bitch. */
 	if (TILE_TYPE_IS_COLLIDABLE(
-		    tilemap_get_tile(pos_new[0], pos_new[1])->type)) {
+		    tilemap_tiles[pos_new[1]][pos_new[0]].type)) {
 		vec2i_copy(pos_new, pos_old);
 		player.move_timer = 0.f;
 	}

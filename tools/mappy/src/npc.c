@@ -1,13 +1,12 @@
 #include <stdio.h>
 
-#define joypad_buttons_t void *
-#include "game/tilemap.h"
-#undef joypad_buttons_t
 #include "npc.h"
+
+#include "engine/tilemap.h"
 
 npc_t *npc_get_from_pos(const int x, const int y)
 {
-	if (tilemap[y][x].type != TILE_TYPE_NPC)
+	if (tilemap_tiles[y][x].type != TILE_TYPE_NPC)
 		return (NULL);
 
 	for (int i = 0; i < tilemap_num_npcs; i++) {

@@ -4,9 +4,7 @@
 #include "nuklear.h"
 #include "input.h"
 
-#define joypad_buttons_t void * /* ignore this illegal bullshit */
-#include "game/npc.h"
-#undef joypad_buttons_t
+#include "engine/npc.h"
 
 #define NK_VERT_BUF_MAX (512 * 1024)
 #define NK_ELEM_BUF_MAX (128 * 1024)

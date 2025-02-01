@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "tilemap.h"
 #include "nuklear_inst.h"
@@ -52,8 +53,8 @@ void nuklear_inst_panel_project(const char *outpath, const float dt)
 		}
 	}
 
-	tilemap_width = (u16)tilemap_width_prop;
-	tilemap_height = (u16)tilemap_height_prop;
+	tilemap_width = (uint16_t)tilemap_width_prop;
+	tilemap_height = (uint16_t)tilemap_height_prop;
 	if (tilemap_width_prop > 0 && tilemap_height_prop > 0 &&
 	    tilemap_width_prop <= TILEMAP_WIDTH_MAX &&
 	    tilemap_height_prop <= TILEMAP_HEIGHT_MAX) {
@@ -65,8 +66,8 @@ void nuklear_inst_panel_project(const char *outpath, const float dt)
 static void nuklear_inst_panel_tile_selected_hover(const int mouse_tile[2])
 {
 	char hover_pos_str[64], hover_type_str[128], hover_col_str[128];
-	const tile_t *hovertile = tilemap[mouse_tile[1]] + mouse_tile[0];
-	const char *hover_types[TILE_TYPE_CNT] = {
+	const tile_t *hovertile = tilemap_tiles[mouse_tile[1]] + mouse_tile[0];
+	const char *hover_types[NUM_TILE_TYPES] = {
 		"  TILE: SPAWN,",
 		"  TILE: NPC,",
 		"  TILE: FLOOR,",
@@ -92,16 +93,16 @@ static void nuklear_inst_panel_tile_selected_hover(const int mouse_tile[2])
 void nuklear_inst_panel_tile_selected(const int mouse_tile[2])
 {
 	char tile_str[64];
-	const char *tile_types[TILE_TYPE_CNT] = { "SPAWN", "NPC", "FLOOR",
-						  "WALL" };
+	const char *tile_type_strs[NUM_TILE_TYPES] = { "SPAWN", "NPC", "FLOOR",
+						       "WALL" };
 	int tile_selected_type_prop = tile_selected.type;
 
-	snprintf(tile_str, 64, tile_types[tile_selected.type]);
+	strncpy(tile_str, tile_type_strs[tile_selected.type], 64);
 	nk_layout_row_dynamic(nkctx, 18, 1);
 	nk_label(nkctx, "TILE: ", NK_LEFT);
 	nk_layout_row_dynamic(nkctx, 24, 2);
-	for (int i = 0; i < TILE_TYPE_CNT; i++)
-		if (nk_option_label(nkctx, tile_types[i],
+	for (int i = 0; i < NUM_TILE_TYPES; i++)
+		if (nk_option_label(nkctx, tile_type_strs[i],
 				    tile_selected_type_prop == i))
 			tile_selected_type_prop = i;
 
@@ -124,31 +125,32 @@ void nuklear_inst_panel_npc(void)
 	nk_label(nkctx, "NAME:", NK_LEFT);
 	nk_layout_row_push(nkctx, 256);
 	npc_name_buf_state = nk_edit_string_zero_terminated(
-		nkctx, NK_EDIT_SIMPLE, npc_selected.name, NPC_NAME_MAX,
+		nkctx, NK_EDIT_SIMPLE, npc_selected.name, NPC_NAME_MAX_LEN,
 		nk_filter_ascii);
 	nk_layout_row_end(nkctx);
 	nk_layout_row_begin(nkctx, NK_STATIC, 24, 2);
-	for (int i = 0; i < npc_selected.dialogue_line_cnt; i++) {
+	for (int i = 0; i < npc_selected.num_dialogue_lines; i++) {
 		nk_layout_row_push(nkctx, 128);
 		nk_edit_string_zero_terminated(nkctx, NK_EDIT_SIMPLE,
 					       npc_selected.dialogue[i].speaker,
-					       NPC_NAME_MAX, nk_filter_ascii);
+					       NPC_NAME_MAX_LEN,
+					       nk_filter_ascii);
 		nk_layout_row_push(nkctx, 512);
 		nk_edit_string_zero_terminated(nkctx, NK_EDIT_SIMPLE,
 					       npc_selected.dialogue[i].line,
-					       DIALOGUE_LINE_MAX,
+					       NPC_DIALOGUE_LINE_MAX_LEN,
 					       nk_filter_ascii);
 	}
 	nk_layout_row_end(nkctx);
 	nk_layout_row_dynamic(nkctx, 24, 2);
 
-	int dlc = npc_selected.dialogue_line_cnt;
+	int dlc = npc_selected.num_dialogue_lines;
 
 	dlc += nk_button_label(nkctx, "+Add Line");
 	dlc -= nk_button_label(nkctx, "-Remove Line");
-	if (dlc >= DIALOGUE_MAX)
-		dlc = DIALOGUE_MAX - 1;
+	if (dlc >= NPC_NUM_DIALOGUE_LINES_MAX)
+		dlc = NPC_NUM_DIALOGUE_LINES_MAX - 1;
 	if (dlc < 0)
 		dlc = 0;
-	npc_selected.dialogue_line_cnt = dlc;
+	npc_selected.num_dialogue_lines = dlc;
 }

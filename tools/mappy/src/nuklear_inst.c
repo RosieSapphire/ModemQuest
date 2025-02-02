@@ -259,7 +259,13 @@ void nuklear_inst_panel_npc(void)
 	nk_layout_row_dynamic(nkctx, 24, 2);
 	num_dlg += nk_button_label(nkctx, "+Add Line");
 	if (num_dlg) {
-		num_dlg -= nk_button_label(nkctx, "-Remove Line");
+		if (nk_button_label(nkctx, "-Remove Line")) {
+			memset(npc_selected.dialogue[num_dlg - 1].line, 0,
+			       NPC_DIALOGUE_LINE_MAX_LEN);
+			memset(npc_selected.dialogue[num_dlg - 1].speaker, 0,
+			       NPC_NAME_MAX_LEN);
+			num_dlg--;
+		}
 	}
 	if (num_dlg >= NPC_NUM_DIALOGUE_LINES_MAX) {
 		num_dlg = NPC_NUM_DIALOGUE_LINES_MAX - 1;

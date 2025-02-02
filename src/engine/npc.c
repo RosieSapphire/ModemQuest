@@ -1,4 +1,5 @@
 #include <libdragon.h>
+#include <string.h>
 
 #include "vec2.h"
 #include "input.h"
@@ -63,8 +64,6 @@ void npc_player_interact(npc_t *n)
 			PLAYER_DIR_DOWN,
 			PLAYER_DIR_UP,
 		};
-		const char *dist_strs[4] = { "on left", "on right", "above",
-					     "below" };
 
 		if (vec2i_equals(dist_vecs[i], player_dist)) {
 			if (player.dir == valid_dirs[i]) {
@@ -125,23 +124,27 @@ void npc_dialogue_box_render(const npc_t *n)
 	rdpq_mode_blender(
 		RDPQ_BLENDER((FOG_RGB, FOG_ALPHA, MEMORY_RGB, INV_MUX_ALPHA)));
 	rdpq_set_fog_color(lighter_col);
-	rdpq_fill_rectangle(18, DISPLAY_HEIGHT - (DISPLAY_HEIGHT >> 2) - 20,
-			    18 + 80, DISPLAY_HEIGHT - (DISPLAY_HEIGHT >> 2));
 
+	/* speaker box */
+	const char *speaker_name = n->dialogue[n->dialogue_cur].speaker;
+	rdpq_fill_rectangle(18, DISPLAY_HEIGHT - (DISPLAY_HEIGHT >> 2) - 20,
+			    20 + (8 * strlen(speaker_name)),
+			    DISPLAY_HEIGHT - (DISPLAY_HEIGHT >> 2));
+
+	/* dialogue box */
 	rdpq_set_fog_color(darker_col);
 	rdpq_fill_rectangle(18, DISPLAY_HEIGHT - (DISPLAY_HEIGHT >> 2),
-			    DISPLAY_WIDTH, DISPLAY_HEIGHT);
+			    DISPLAY_WIDTH - 18, DISPLAY_HEIGHT - 6);
 
 	/* speaker's name */
-	font_printf(18, DISPLAY_HEIGHT - (DISPLAY_HEIGHT >> 2) - 4, NULL,
-		    n->dialogue[n->dialogue_cur].speaker);
+	font_printf(22, DISPLAY_HEIGHT - (DISPLAY_HEIGHT >> 2) - 6, NULL,
+		    speaker_name);
 
 	/* speaker's dialogue */
 	char line[NPC_DIALOGUE_LINE_MAX_LEN];
-
-	snprintf(line, n->dialogue_char_cur + 1, "%s",
-		 n->dialogue[n->dialogue_cur].line);
-	font_printf(18, DISPLAY_HEIGHT - (DISPLAY_HEIGHT >> 2) + 18,
+	strncpy(line, n->dialogue[n->dialogue_cur].line,
+		n->dialogue_char_cur + 1);
+	font_printf(22, DISPLAY_HEIGHT - (DISPLAY_HEIGHT >> 2) + 18,
 		    &(const rdpq_textparms_t){ .width = DISPLAY_WIDTH - 36,
 					       .wrap = WRAP_WORD },
 		    line);

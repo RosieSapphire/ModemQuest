@@ -19,5 +19,6 @@ void vec2i_copy(vec2i dst, const vec2i src);
 void vec2i_add(vec2i dst, const vec2i a, const vec2i b);
 void vec2i_sub(vec2i dst, const vec2i a, const vec2i b);
 void vec2i_lerp(vec2i dst, const vec2i a, const vec2i b, const float t);
+int vec2i_equals(const vec2i a, const vec2i b);
 
 #endif /* _VEC2_H_ */

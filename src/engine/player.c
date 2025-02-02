@@ -66,9 +66,10 @@ static void _player_update_moving(vec2i move, const float dt,
 			  dpad[1]);
 }
 
-static void _player_update_collision(const vec2i pos_old, const vec2i move,
-				     vec2i pos_new_out)
+static int _player_update_collision(const vec2i pos_old, const vec2i move,
+				    vec2i pos_new_out)
 {
+	int is_unable_to_move = false;
 	vec2i pos_new;
 
 	vec2i_add(pos_new, pos_old, move);
@@ -84,7 +85,6 @@ static void _player_update_collision(const vec2i pos_old, const vec2i move,
 
 		if (pos_new[0] != pos_old[0] + poslut[i][0] ||
 		    pos_new[1] != pos_old[1] + poslut[i][1]) {
-			// debugf("Skipping this\n");
 			continue;
 		}
 
@@ -97,7 +97,6 @@ static void _player_update_collision(const vec2i pos_old, const vec2i move,
 		if (TILE_TYPE_IS_COLLIDABLE(
 			    tilemap_tiles[pos_old[1] + poslut[i][1]][pos_old[0]]
 				    .type)) {
-			// debugf("Pos Y is collidable\n");
 			pos_new[1] = pos_old[1];
 		}
 
@@ -114,21 +113,30 @@ static void _player_update_collision(const vec2i pos_old, const vec2i move,
 		}
 	}
 
-	/* if we're currently in a collidable tile (shouldn't happen),
-	 * the move us out of that bitch. */
 	if (TILE_TYPE_IS_COLLIDABLE(
 		    tilemap_tiles[pos_new[1]][pos_new[0]].type)) {
 		vec2i_copy(pos_new, pos_old);
+		// debugf("Nope: (%d, %d)\n", move[0], move[1]);
+		is_unable_to_move = true;
 		player.move_timer = 0.f;
 	}
 
 	vec2i_copy(pos_new_out, pos_new);
+
+	return is_unable_to_move;
 }
 
-static void _player_update_direction(const vec2i pos_old, const vec2i pos_new)
+static void _player_update_direction(const vec2i pos_old, const vec2i pos_new,
+				     const int is_unable_to_move,
+				     const vec2i intended_move)
 {
 	vec2i delta;
-	vec2i_sub(delta, pos_new, pos_old);
+
+	if (is_unable_to_move) {
+		vec2i_copy(delta, intended_move);
+	} else {
+		vec2i_sub(delta, pos_new, pos_old);
+	}
 
 	if (delta[1] > 0)
 		player.dir = PLAYER_DIR_DOWN;
@@ -162,11 +170,17 @@ void player_update(const float dt)
 	player.move_timer_old = player.move_timer;
 
 	_player_update_moving(move, dt, is_trying_to_move, dpad);
-	_player_update_collision(pos_old, move, pos_new);
-	_player_update_direction(pos_old, pos_new);
 
 	/* next moving step */
 	if (player.move_timer >= 0.f) {
+		return;
+	}
+
+	int is_unable_to_move =
+		_player_update_collision(pos_old, move, pos_new);
+	_player_update_direction(pos_old, pos_new, is_unable_to_move, move);
+
+	if (is_unable_to_move) {
 		return;
 	}
 

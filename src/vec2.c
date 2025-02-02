@@ -93,3 +93,16 @@ void vec2i_lerp(vec2i dst, const vec2i a, const vec2i b, const float t)
 	dst[0] = lerpi(a[0], b[0], t);
 	dst[1] = lerpi(a[1], b[1], t);
 }
+
+int vec2i_equals(const vec2i a, const vec2i b)
+{
+	if (a[0] != b[0]) {
+		return 0;
+	}
+
+	if (a[1] != b[1]) {
+		return 0;
+	}
+
+	return 1;
+}

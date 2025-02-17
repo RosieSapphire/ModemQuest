@@ -9,6 +9,7 @@
 #include "window.h"
 #include "tilemap.h"
 #include "npc.h"
+#include "door.h"
 
 #include "engine/tilemap.h"
 
@@ -19,9 +20,7 @@
 #undef TILE_SIZE
 #define TILE_SIZE (tilemap_is_zoomed ? 64 : 32)
 
-uint16_t tilemap_width, tilemap_height, tilemap_num_npcs;
-tile_t tilemap_tiles[TILEMAP_HEIGHT_MAX][TILEMAP_WIDTH_MAX];
-npc_t tilemap_npcs[TILEMAP_NUM_NPCS_MAX];
+tilemap_t tilemap;
 tile_t tile_selected = { TILE_TYPE_FLOOR, 0xFFFF };
 int tilemap_pan_x, tilemap_pan_y, tilemap_is_zoomed;
 
@@ -34,32 +33,45 @@ void tilemap_load_mappy(const char *path)
 
 	/* If no file is found, we just initalize with the default */
 	if (!file) {
-		tilemap_width = TILEMAP_WIDTH_DEFAULT;
-		tilemap_height = TILEMAP_HEIGHT_DEFAULT;
-		tilemap_num_npcs = 0;
+		tilemap.width = TILEMAP_WIDTH_DEFAULT;
+		tilemap.height = TILEMAP_HEIGHT_DEFAULT;
+		tilemap.num_npcs = 0;
+		tilemap.num_doors = 0;
+		tilemap.map_index = 0;
 		for (int y = 0; y < TILEMAP_HEIGHT_MAX; y++) {
 			for (int x = 0; x < TILEMAP_WIDTH_MAX; x++) {
-				tilemap_tiles[y][x].type = TILE_TYPE_FLOOR;
-				tilemap_tiles[y][x].col = 0xFFFF;
+				tilemap.tiles[y][x].type = TILE_TYPE_FLOOR;
+				tilemap.tiles[y][x].col = 0xFFFF;
 			}
 		}
+
+		memset(tilemap.npcs, 0,
+		       sizeof *tilemap.npcs * TILEMAP_NUM_NPCS_MAX);
+		memset(tilemap.doors, 0,
+		       sizeof *tilemap.doors * TILEMAP_NUM_DOORS_MAX);
 
 		return;
 	}
 
-	fread_ef16(&tilemap_width, file);
-	fread_ef16(&tilemap_height, file);
-	fread_ef16(&tilemap_num_npcs, file);
-	for (int y = 0; y < tilemap_height; y++) {
-		for (int x = 0; x < tilemap_width; x++) {
-			tile_t *t = tilemap_tiles[y] + x;
+	fread_ef16(&tilemap.width, file);
+	fread_ef16(&tilemap.height, file);
+	fread_ef16(&tilemap.num_npcs, file);
+	fread_ef16(&tilemap.num_doors, file);
+	fread(&tilemap.map_index, 1, 1, file);
+
+	/* tiles */
+	for (int y = 0; y < tilemap.height; y++) {
+		for (int x = 0; x < tilemap.width; x++) {
+			tile_t *t = tilemap.tiles[y] + x;
 
 			fread(&t->type, 1, 1, file);
 			fread_ef16(&t->col, file);
 		}
 	}
-	for (int i = 0; i < tilemap_num_npcs; i++) {
-		npc_t *n = tilemap_npcs + i;
+
+	/* npcs */
+	for (int i = 0; i < tilemap.num_npcs; i++) {
+		npc_t *n = tilemap.npcs + i;
 
 		fread(n->name, 1, NPC_NAME_MAX_LEN, file);
 		fread_ef16(n->pos + 0, file);
@@ -72,16 +84,28 @@ void tilemap_load_mappy(const char *path)
 			fread(dl->line, 1, NPC_DIALOGUE_LINE_MAX_LEN, file);
 		}
 	}
+
+	/* doors */
+	for (int i = 0; i < tilemap.num_doors; i++) {
+		door_t *d = tilemap.doors + i;
+
+		fread(&d->map_index, 1, 1, file);
+		fread_ef16(d->pos + 0, file);
+		fread_ef16(d->pos + 1, file);
+	}
+
 	fclose(file);
 }
 
 void tilemap_unload_mappy(void)
 {
 	/* FIXME: More stuff here */
-	tilemap_width = tilemap_height = tilemap_num_npcs = 0;
-	memset(tilemap_npcs, 0, TILEMAP_NUM_NPCS_MAX * sizeof *tilemap_npcs);
-	memset(tilemap_tiles, 0,
-	       TILEMAP_WIDTH_MAX * TILEMAP_HEIGHT_MAX * sizeof **tilemap_tiles);
+	tilemap.width = tilemap.height = tilemap.num_npcs = tilemap.num_doors =
+		tilemap.map_index = 0;
+	memset(tilemap.doors, 0, TILEMAP_NUM_DOORS_MAX * sizeof *tilemap.doors);
+	memset(tilemap.npcs, 0, TILEMAP_NUM_NPCS_MAX * sizeof *tilemap.npcs);
+	memset(tilemap.tiles, 0,
+	       TILEMAP_WIDTH_MAX * TILEMAP_HEIGHT_MAX * sizeof **tilemap.tiles);
 	tilemap_pan_x = tilemap_pan_y = tilemap_is_zoomed = 0;
 }
 
@@ -125,7 +149,7 @@ int tilemap_is_mouse_in_range(void)
 
 void tilemap_tile_render(const int x, const int y, int is_selected)
 {
-	if (x < 0 || x >= tilemap_width || y < 0 || y >= tilemap_height)
+	if (x < 0 || x >= tilemap.width || y < 0 || y >= tilemap.height)
 		return;
 
 	const int pad = 3;
@@ -137,7 +161,7 @@ void tilemap_tile_render(const int x, const int y, int is_selected)
 
 	if (is_selected) {
 		if (!tilemap_is_mouse_in_range()) {
-			const tile_t *tile = tilemap_tiles[y] + x;
+			const tile_t *tile = tilemap.tiles[y] + x;
 
 			r = ((tile->col & 0xF800) >> 11) / 31.0f;
 			g = ((tile->col & 0x07C0) >> 6) / 31.0f;
@@ -157,7 +181,7 @@ void tilemap_tile_render(const int x, const int y, int is_selected)
 		a = 0.5f;
 		glDisable(GL_BLEND);
 	} else {
-		const tile_t *tile = tilemap_tiles[y] + x;
+		const tile_t *tile = tilemap.tiles[y] + x;
 
 		r = ((tile->col & 0xF800) >> 11) / 31.0f;
 		g = ((tile->col & 0x07C0) >> 6) / 31.0f;
@@ -171,40 +195,65 @@ void tilemap_tile_render(const int x, const int y, int is_selected)
 
 static void _tilemap_remove_npc(const uint16_t index)
 {
-	npc_t *npc = tilemap_npcs + index;
+	npc_t *npc = tilemap.npcs + index;
 
 	/* if this is the last npcs in the list */
 	npc_destroy(npc);
-	if (index + 1 >= tilemap_num_npcs) {
-		tilemap_num_npcs--;
+	if (index + 1 >= tilemap.num_npcs) {
+		tilemap.num_npcs--;
 		return;
 	}
 
-	for (uint16_t i = index + 1; i < tilemap_num_npcs; i++) {
-		npc_t *to = tilemap_npcs + i - 1;
-		npc_t *from = tilemap_npcs + i;
+	for (uint16_t i = index + 1; i < tilemap.num_npcs; i++) {
+		npc_t *to = tilemap.npcs + i - 1;
+		npc_t *from = tilemap.npcs + i;
 
 		npc_duplicate(to, from);
 	}
-	npc_destroy(tilemap_npcs + --tilemap_num_npcs);
+	npc_destroy(tilemap.npcs + --tilemap.num_npcs);
+}
+
+static void _tilemap_remove_door(const uint16_t index)
+{
+	door_t *door = tilemap.doors + index;
+
+	/* if this is the last door in the list */
+	door_destroy(door);
+	if (index + 1 >= tilemap.num_doors) {
+		tilemap.num_doors--;
+		return;
+	}
+
+	for (uint16_t i = index + 1; i < tilemap.num_doors; i++) {
+		door_t *to = tilemap.doors + i - 1;
+		door_t *from = tilemap.doors + i;
+
+		door_duplicate(to, from);
+	}
+	door_destroy(tilemap.doors + --tilemap.num_doors);
 }
 
 void tilemap_place_tile(const int x, const int y)
 {
-	tile_t *t = tilemap_tiles[y] + x;
+	tile_t *t = tilemap.tiles[y] + x;
 	int type_old = t->type;
 
 	t->type = tile_selected.type;
 	t->col = tile_selected.col;
+
+	/* placing NPCS */
 	if (t->type == TILE_TYPE_NPC) {
+		printf("Placing NPC (%d, %d) (%d)\n", x, y,
+		       (type_old != TILE_TYPE_NPC));
 		npc_selected.pos[0] = x;
 		npc_selected.pos[1] = y;
-		tilemap_num_npcs += (type_old != TILE_TYPE_NPC);
-		tilemap_npcs[tilemap_num_npcs - 1] = npc_selected;
+		tilemap.num_npcs += (type_old != TILE_TYPE_NPC);
+		tilemap.npcs[tilemap.num_npcs - 1] = npc_selected;
 	} else if (type_old == TILE_TYPE_NPC) {
+		printf("Removing NPC\n");
 		int remove_ind = -1;
-		for (uint16_t i = 0; i < tilemap_num_npcs; i++) {
-			npc_t *n = tilemap_npcs + i;
+		for (uint16_t i = 0; i < tilemap.num_npcs; i++) {
+			npc_t *n = tilemap.npcs + i;
 
 			if (n->pos[0] == x && n->pos[1] == y) {
 				remove_ind = i;
@@ -212,23 +261,50 @@ void tilemap_place_tile(const int x, const int y)
 			}
 		}
 		if (remove_ind != -1) {
-			printf("Tried to remove NPC %d\n", remove_ind);
 			_tilemap_remove_npc(remove_ind);
+		}
+	}
+
+	/* placing doors */
+	if (t->type == TILE_TYPE_DOOR) {
+		printf("Placing door (%d, %d) (%d)\n", x, y,
+		       (type_old != TILE_TYPE_DOOR));
+		door_selected.pos[0] = x;
+		door_selected.pos[1] = y;
+		tilemap.num_doors += (type_old != TILE_TYPE_DOOR);
+		tilemap.doors[tilemap.num_doors - 1] = door_selected;
+	} else if (type_old == TILE_TYPE_DOOR) {
+		printf("Removing door\n");
+		int remove_ind = -1;
+		for (uint16_t i = 0; i < tilemap.num_doors; i++) {
+			door_t *d = tilemap.doors + i;
+
+			if (d->pos[0] == x && d->pos[1] == y) {
+				remove_ind = i;
+				break;
+			}
+		}
+		if (remove_ind != -1) {
+			_tilemap_remove_door(remove_ind);
 		}
 	}
 }
 
 void tilemap_pick_tile(const int x, const int y)
 {
-	const tile_t *t = tilemap_tiles[y] + x;
+	const tile_t *t = tilemap.tiles[y] + x;
 
 	tile_selected.type = t->type;
 	tile_selected_colf.r = (float)((t->col & 0xF800) >> 11) / 31.0f;
 	tile_selected_colf.g = (float)((t->col & 0x07C0) >> 6) / 31.0f;
 	tile_selected_colf.b = (float)((t->col & 0x003E) >> 1) / 31.0f;
 
-	if (t->type == TILE_TYPE_NPC)
+	if (t->type == TILE_TYPE_NPC) {
 		npc_selected = *npc_get_from_pos(x, y);
+		return;
+	}
+
+	npc_destroy(&npc_selected);
 }
 
 void tilemap_place_rect(const int mx_tile, const int my_tile)
@@ -271,19 +347,25 @@ void tilemap_save(const char *outpath)
 {
 	FILE *file = fopen(outpath, "wb");
 
-	fwrite_ef16(&tilemap_width, file);
-	fwrite_ef16(&tilemap_height, file);
-	fwrite_ef16(&tilemap_num_npcs, file);
-	for (int y = 0; y < tilemap_height; y++) {
-		for (int x = 0; x < tilemap_width; x++) {
-			const tile_t *t = tilemap_tiles[y] + x;
+	fwrite_ef16(&tilemap.width, file);
+	fwrite_ef16(&tilemap.height, file);
+	fwrite_ef16(&tilemap.num_npcs, file);
+	fwrite_ef16(&tilemap.num_doors, file);
+	fwrite(&tilemap.map_index, 1, 1, file);
+
+	/* tiles */
+	for (int y = 0; y < tilemap.height; y++) {
+		for (int x = 0; x < tilemap.width; x++) {
+			const tile_t *t = tilemap.tiles[y] + x;
 
 			fwrite(&t->type, 1, 1, file);
 			fwrite_ef16(&t->col, file);
 		}
 	}
-	for (int i = 0; i < tilemap_num_npcs; i++) {
-		const npc_t *n = tilemap_npcs + i;
+
+	/* npcs */
+	for (int i = 0; i < tilemap.num_npcs; i++) {
+		const npc_t *n = tilemap.npcs + i;
 
 		fwrite(n->name, 1, NPC_NAME_MAX_LEN, file);
 		fwrite_ef16(n->pos + 0, file);
@@ -297,6 +379,15 @@ void tilemap_save(const char *outpath)
 		}
 	}
 
+	/* doors */
+	for (int i = 0; i < tilemap.num_doors; i++) {
+		door_t *d = tilemap.doors + i;
+
+		fwrite(&d->map_index, 1, 1, file);
+		fwrite_ef16(d->pos + 0, file);
+		fwrite_ef16(d->pos + 1, file);
+	}
+
 	fclose(file);
 	printf("SAVED FILE '%s'\n", outpath);
 }
@@ -308,11 +399,11 @@ void tilemap_update_panning(const float dt)
 
 	for (int i = 0; i < INPUT_GET_KEY(SHIFT, HELD) + 1; i++) {
 		const int px_min = -((window_width - 180) -
-				     (tilemap_width * TILE_SIZE_PXLS));
+				     (tilemap.width * TILE_SIZE_PXLS));
 		const int px_max = 0;
 		const int py_min =
 			-((window_height - 180) -
-			  (((tilemap_height >> 1) - 1) * TILE_SIZE_PXLS));
+			  (((tilemap.height >> 1) - 1) * TILE_SIZE_PXLS));
 		const int py_max = -128;
 
 		tilemap_pan_x +=

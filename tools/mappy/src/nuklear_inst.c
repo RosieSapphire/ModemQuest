@@ -8,6 +8,7 @@
 #include "input.h"
 #include "tilemap.h"
 #include "window.h"
+#include "door.h"
 
 #include "engine/tilemap.h"
 
@@ -36,6 +37,7 @@ static float save_timer;
 
 int npc_name_buf_state;
 npc_t npc_selected = { 0 };
+door_t door_selected = { 0 };
 
 /********
  * BASE *
@@ -68,14 +70,15 @@ void nuklear_inst_render(const char *outpath, const int mouse[2],
 	int num_spawns = 0;
 	char project_str[128];
 
-	for (int y = 0; y < tilemap_height; y++)
-		for (int x = 0; x < tilemap_width; x++)
-			num_spawns += (tilemap_tiles[y][x].type ==
+	for (int y = 0; y < tilemap.height; y++)
+		for (int x = 0; x < tilemap.width; x++)
+			num_spawns += (tilemap.tiles[y][x].type ==
 				       TILE_TYPE_PLAYER_SPAWN);
 
 	nk_glfw3_new_frame();
-	snprintf(project_str, 128, "PROJECT '%s' %d spawn(s), %d npc(s)",
-		 outpath, num_spawns, tilemap_num_npcs);
+	snprintf(project_str, 128,
+		 "PROJECT '%s' %d spawn(s), %d npc(s) %d door(s)", outpath,
+		 num_spawns, tilemap.num_npcs, tilemap.num_doors);
 
 	if (nk_begin(nkctx, project_str, nk_rect(0, 0, window_width - 180, 128),
 		     NK_WINDOW_BORDER | NK_WINDOW_TITLE))
@@ -110,30 +113,11 @@ void nuklear_inst_terminate(void)
  * PANELS *
  **********/
 
-static void nuklear_inst_panel_project_buttons(const char *outpath)
-{
-	if (nk_button_label(nkctx, "NEW")) {
-		tilemap_load_mappy(NULL);
-	}
-	if (nk_button_label(nkctx, just_saved ? "SAVED!" : "SAVE")) {
-		if (!just_saved) {
-			tilemap_save(outpath);
-			just_saved = 1;
-			save_timer = 0.0f;
-		}
-	}
-	if (nk_button_label(nkctx, "SAVE & QUIT")) {
-		tilemap_save(outpath);
-		exit(EXIT_SUCCESS);
-	}
-	if (nk_button_label(nkctx, "QUIT"))
-		exit(EXIT_SUCCESS);
-}
-
 void nuklear_inst_panel_project(const char *outpath, const float dt)
 {
-	int tilemap_width_prop = tilemap_width;
-	int tilemap_height_prop = tilemap_height;
+	/* Width & Height properties */
+	int tilemap_width_prop = tilemap.width;
+	int tilemap_height_prop = tilemap.height;
 
 	nk_layout_row_dynamic(nkctx, 16, 2);
 	nk_property_int(nkctx, "WIDTH:", 1, &tilemap_width_prop,
@@ -141,7 +125,33 @@ void nuklear_inst_panel_project(const char *outpath, const float dt)
 	nk_property_int(nkctx, "HEIGHT:", 1, &tilemap_height_prop,
 			TILEMAP_HEIGHT_MAX, 1, 1);
 	nk_layout_row_dynamic(nkctx, 16, 4);
-	nuklear_inst_panel_project_buttons(outpath);
+
+	/* New button */
+	if (nk_button_label(nkctx, "NEW")) {
+		tilemap_load_mappy(NULL);
+	}
+
+	/* Save button */
+	if (nk_button_label(nkctx, just_saved ? "SAVED!" : "SAVE")) {
+		if (!just_saved) {
+			tilemap_save(outpath);
+			just_saved = 1;
+			save_timer = 0.0f;
+		}
+	}
+
+	/* Save & Quit button */
+	if (nk_button_label(nkctx, "SAVE & QUIT")) {
+		tilemap_save(outpath);
+		exit(EXIT_SUCCESS);
+	}
+
+	/* Quit button */
+	if (nk_button_label(nkctx, "QUIT")) {
+		exit(EXIT_SUCCESS);
+	}
+
+	/* Save timer */
 	if (just_saved) {
 		save_timer += dt;
 		if (save_timer >= SAVE_TIMER_MAX) {
@@ -150,25 +160,32 @@ void nuklear_inst_panel_project(const char *outpath, const float dt)
 		}
 	}
 
-	tilemap_width = (uint16_t)tilemap_width_prop;
-	tilemap_height = (uint16_t)tilemap_height_prop;
+	/* Map Index */
+	int tilemap_index_prop = tilemap.map_index;
+
+	nk_layout_row_dynamic(nkctx, 16, 2);
+	nk_property_int(nkctx, "MAP INDEX:", 0, &tilemap_index_prop,
+			TILEMAP_MAP_INDEX_MAX, 1, 1);
+
+	/* assign new properties */
+	tilemap.width = (uint16_t)tilemap_width_prop;
+	tilemap.height = (uint16_t)tilemap_height_prop;
+	tilemap.map_index = (uint16_t)tilemap_index_prop;
 	if (tilemap_width_prop > 0 && tilemap_height_prop > 0 &&
 	    tilemap_width_prop <= TILEMAP_WIDTH_MAX &&
 	    tilemap_height_prop <= TILEMAP_HEIGHT_MAX) {
-		tilemap_width = tilemap_width_prop;
-		tilemap_height = tilemap_height_prop;
+		tilemap.width = tilemap_width_prop;
+		tilemap.height = tilemap_height_prop;
 	}
 }
 
 static void nuklear_inst_panel_tile_selected_hover(const int mouse_tile[2])
 {
 	char hover_pos_str[64], hover_type_str[128], hover_col_str[128];
-	const tile_t *hovertile = tilemap_tiles[mouse_tile[1]] + mouse_tile[0];
+	const tile_t *hovertile = tilemap.tiles[mouse_tile[1]] + mouse_tile[0];
 	const char *hover_types[NUM_TILE_TYPES] = {
-		"  TILE: SPAWN,",
-		"  TILE: NPC,",
-		"  TILE: FLOOR,",
-		"  TILE: WALL,",
+		"  TILE: SPAWN,", "  TILE: NPC,", "  TILE: FLOOR,",
+		"  TILE: WALL,",  "  TILE: DOOR",
 	};
 
 	nk_layout_row_dynamic(nkctx, 16, 1);
@@ -176,22 +193,40 @@ static void nuklear_inst_panel_tile_selected_hover(const int mouse_tile[2])
 		 mouse_tile[1]);
 	snprintf(hover_type_str, 128, "%s", hover_types[hovertile->type]);
 	snprintf(hover_col_str, 128, "  0x%.4X,", hovertile->col);
-	if (!tilemap_is_mouse_in_range())
+	if (!tilemap_is_mouse_in_range()) {
 		return;
+	}
 
-	const char *labels[5] = {
-		"HOVER: [", hover_pos_str, hover_type_str, hover_col_str, "]",
+	const char *labels[4] = {
+		"HOVER: [",
+		hover_pos_str,
+		hover_type_str,
+		hover_col_str,
 	};
 
-	for (int i = 0; i < 5; i++)
+	for (int i = 0; i < 4; i++) {
 		nk_label(nkctx, labels[i], NK_LEFT);
+	}
+
+	if (hovertile->type == TILE_TYPE_DOOR) {
+		char hover_door_str[64];
+		door_t *hd = door_get_from_pos(mouse_tile[0], mouse_tile[1]);
+
+		/* FIXME: There is a massive bug where if you overwrite
+		 * a previous door, the whole fucking thing collapses.
+		 * FIX IT */
+		snprintf(hover_door_str, 64, "  DOOR IND: %u", hd->map_index);
+		nk_label(nkctx, hover_door_str, NK_LEFT);
+	}
+
+	nk_label(nkctx, "]", NK_LEFT);
 }
 
 void nuklear_inst_panel_tile_selected(const int mouse_tile[2])
 {
 	char tile_str[64];
 	const char *tile_type_strs[NUM_TILE_TYPES] = { "SPAWN", "NPC", "FLOOR",
-						       "WALL" };
+						       "WALL", "DOOR" };
 	int tile_selected_type_prop = tile_selected.type;
 
 	strncpy(tile_str, tile_type_strs[tile_selected.type], 64);
@@ -202,6 +237,17 @@ void nuklear_inst_panel_tile_selected(const int mouse_tile[2])
 		if (nk_option_label(nkctx, tile_type_strs[i],
 				    tile_selected_type_prop == i))
 			tile_selected_type_prop = i;
+
+	if (tile_selected.type == TILE_TYPE_DOOR) {
+		int door_selected_index_prop = door_selected.map_index;
+
+		nk_layout_row_dynamic(nkctx, 32, 1);
+		nk_property_int(nkctx, "MAP INDEX:", 0,
+				&door_selected_index_prop,
+				TILEMAP_MAP_INDEX_MAX, 1, 1);
+
+		door_selected.map_index = (uint16_t)door_selected_index_prop;
+	}
 
 	nk_layout_row_dynamic(nkctx, 128, 1);
 	nk_color_pick(nkctx, &tile_selected_colf, NK_RGB);
@@ -224,7 +270,7 @@ void nuklear_inst_panel_npc(void)
 	nk_layout_row_push(nkctx, 256);
 	npc_name_buf_state = nk_edit_string_zero_terminated(
 		nkctx, NK_EDIT_SIMPLE, npc_selected.name, NPC_NAME_MAX_LEN,
-		nk_filter_ascii);
+		nk_filter_ascii) == 8;
 	nk_layout_row_end(nkctx);
 
 	/* dialogue */

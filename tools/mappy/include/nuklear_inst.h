@@ -5,6 +5,7 @@
 #include "input.h"
 
 #include "engine/npc.h"
+#include "engine/door.h"
 
 #define NK_VERT_BUF_MAX (512 * 1024)
 #define NK_ELEM_BUF_MAX (128 * 1024)
@@ -17,6 +18,7 @@ extern struct nk_colorf tile_selected_colf;
 extern struct nk_font *jbm_font;
 extern int npc_name_buf_state;
 extern npc_t npc_selected;
+extern door_t door_selected;
 
 /* base */
 void nuklear_inst_init(void);

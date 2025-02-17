@@ -6,33 +6,33 @@
 #include "engine/player.h"
 #include "engine/tilemap.h"
 
-uint16_t tilemap_width = 0, tilemap_height = 0, tilemap_num_npcs = 0;
-tile_t tilemap_tiles[TILEMAP_HEIGHT_MAX][TILEMAP_WIDTH_MAX];
-npc_t tilemap_npcs[TILEMAP_NUM_NPCS_MAX];
+struct tilemap tilemap;
 
-void tilemap_init(const char *path, vec2i spawn_pos)
+void tilemap_init(const char *path, vec2s spawn_pos)
 {
 	FILE *file = fopen(path, "rb");
 
 	assertf(file, "Failed to load tilemap from '%s'\n", path);
 
-	fread(&tilemap_width, 2, 1, file);
-	fread(&tilemap_height, 2, 1, file);
-	fread(&tilemap_num_npcs, 2, 1, file);
+	fread(&tilemap.map_index, 2, 1, file);
+	fread(&tilemap.width, 1, 1, file);
+	fread(&tilemap.height, 1, 1, file);
+	fread(&tilemap.npc_count, 1, 1, file);
+	fread(&tilemap.door_count, 1, 1, file);
 
 	/* tiles */
-	for (int y = 0; y < tilemap_height; y++) {
-		for (int x = 0; x < tilemap_width; x++) {
-			tile_t *t = tilemap_tiles[y] + x;
+	for (int y = 0; y < tilemap.height; y++) {
+		for (int x = 0; x < tilemap.width; x++) {
+			struct tile *t = tilemap.tiles[y] + x;
 
 			fread(&t->type, 1, 1, file);
-			fread(&t->col, 2, 1, file);
+			fread(&t->color, 2, 1, file);
 		}
 	}
 
 	/* npcs */
-	for (int i = 0; i < tilemap_num_npcs; i++) {
-		npc_t *n = tilemap_npcs + i;
+	for (int i = 0; i < tilemap.npc_count; i++) {
+		struct npc *n = tilemap.npcs + i;
 
 		fread(n->name, 1, NPC_NAME_MAX_LEN, file);
 		fread(n->pos, 2, 2, file);
@@ -40,7 +40,7 @@ void tilemap_init(const char *path, vec2i spawn_pos)
 
 		/* npc dialogue */
 		for (int j = 0; j < n->num_dialogue_lines; j++) {
-			dialogue_line_t *dl = n->dialogue + j;
+			struct dialogue_line *dl = n->dialogue + j;
 
 			fread(dl->speaker, 1, NPC_NAME_MAX_LEN, file);
 			fread(dl->line, 1, NPC_DIALOGUE_LINE_MAX_LEN, file);
@@ -51,18 +51,25 @@ void tilemap_init(const char *path, vec2i spawn_pos)
 		n->dialogue_char_cur = 0;
 	}
 
+	/* doors */
+	for (int i = 0; i < tilemap.door_count; i++) {
+		struct door *d = tilemap.doors + i;
+
+		fread(&d->map_index, 1, 1, file);
+	}
+
 	fclose(file);
 
 	/* getting player spawn position (will only pick first one) */
 	int has_found_spawn = false;
-	for (int y = 0; y < tilemap_height; y++) {
-		for (int x = 0; x < tilemap_width; x++) {
-			if (tilemap_tiles[y][x].type !=
+	for (int y = 0; y < tilemap.height; y++) {
+		for (int x = 0; x < tilemap.width; x++) {
+			if (tilemap.tiles[y][x].type !=
 			    TILE_TYPE_PLAYER_SPAWN) {
 				continue;
 			}
 
-			vec2i_set(spawn_pos, x, y);
+			vec2s_set(spawn_pos, x, y);
 			has_found_spawn = true;
 			break;
 		}
@@ -72,13 +79,13 @@ void tilemap_init(const char *path, vec2i spawn_pos)
 		path);
 
 	debugf("LOADED TILEMAP '%s': [%d, %d], %d npc(s)\n", path,
-	       tilemap_width, tilemap_height, tilemap_num_npcs);
+	       tilemap.width, tilemap.height, tilemap.npc_count);
 }
 
 void tilemap_update(void)
 {
-	for (int i = 0; i < tilemap_num_npcs; i++) {
-		npc_player_interact(tilemap_npcs + i);
+	for (int i = 0; i < tilemap.npc_count; i++) {
+		npc_player_interact(tilemap.npcs + i);
 	}
 }
 
@@ -87,7 +94,7 @@ void tilemap_render(const float subtick)
 	vec2f player_pos;
 	player_get_pos_lerped(player_pos, subtick);
 
-	vec2i offset = { 0, 0 };
+	vec2s offset = { 0, 0 };
 
 	if (player_pos[0] - PLAYER_RENDER_POS_X_MAX < 0) {
 		offset[0] = 0;
@@ -119,24 +126,21 @@ void tilemap_render(const float subtick)
 
 			rdpq_fill_rect_border(xo, yo, xo + TILE_SIZE_PXLS,
 					      yo + TILE_SIZE_PXLS,
-					      tilemap_tiles[y][x].col, 2);
+					      tilemap.tiles[y][x].color, 2);
 		}
 	}
 }
 
 void tilemap_render_npc_dialogue_boxes(void)
 {
-	for (int i = 0; i < tilemap_num_npcs; i++) {
-		npc_dialogue_box_render(tilemap_npcs + i);
+	for (int i = 0; i < tilemap.npc_count; i++) {
+		npc_dialogue_box_render(tilemap.npcs + i);
 	}
 }
 
-void tilemap_terminate(void)
+void tilemap_free(void)
 {
-	/*
-	memset(npcs, 0, sizeof *npcs * TILEMAP_NUM_NPCS_MAX);
-	memset(tilemap, 0, sizeof **tilemap * TILEMAP_WIDTH_MAX * TILEMAP_HEIGHT_MAX);
-	*/
-	tilemap_width = tilemap_height = tilemap_num_npcs = 0;
+	tilemap.width = tilemap.height = tilemap.npc_count =
+		tilemap.door_count = tilemap.map_index = 0;
 	debugf("UNLOADED TILEMAP\n");
 }

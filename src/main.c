@@ -1,5 +1,6 @@
 #include <libdragon.h>
 
+#include "types.h"
 #include "config.h"
 #include "input.h"
 #include "font.h"
@@ -9,33 +10,32 @@
 #include "game/title.h"
 #include "game/testarea.h"
 
-static float time_accumulated = 0.f;
+static f32 time_accumulated = 0.f;
 static int dfs_handle = 0;
 
 static void _init(void);
-static void _update(const float dt);
+static void _update(const f32 dt);
 static void _render(void);
-static void _terminate(void);
+static void _free(void);
 
 static void (*scene_init_funcs[NUM_SCENE_INDICES])(void) = { title_init,
 							     testarea_init };
-static scene_index_t (*scene_update_funcs[NUM_SCENE_INDICES])(const float) = {
+static scene_index_t (*scene_update_funcs[NUM_SCENE_INDICES])(const f32) = {
 	title_update, testarea_update
 };
-static void (*scene_render_funcs[NUM_SCENE_INDICES])(const float) = {
+static void (*scene_render_funcs[NUM_SCENE_INDICES])(const f32) = {
 	title_render, testarea_render
 };
-static void (*scene_terminate_funcs[NUM_SCENE_INDICES])(void) = {
-	title_terminate, testarea_terminate
-};
+static void (*scene_free_funcs[NUM_SCENE_INDICES])(void) = { title_free,
+							     testarea_free };
 
 int main(void)
 {
 	_init();
 
 	for (;;) {
-		const float dt = DELTA_TIME;
-		float frame_time = display_get_delta_time();
+		const f32 dt = DELTA_TIME;
+		f32 frame_time = display_get_delta_time();
 
 		time_accumulated += frame_time;
 		while (time_accumulated >= dt) {
@@ -45,7 +45,7 @@ int main(void)
 		_render();
 	}
 
-	_terminate();
+	_free();
 
 	return 0;
 }
@@ -61,6 +61,7 @@ static void _init(void)
 	debug_init_usblog();
 	rdpq_debug_start();
 #endif
+	debugf("RUNNING\n");
 
 	dfs_handle = dfs_init(DFS_DEFAULT_LOCATION);
 	asset_init_compression(1);
@@ -78,7 +79,7 @@ static void _init(void)
 	(*scene_init_funcs[scene_index])();
 }
 
-static void _update(const float dt)
+static void _update(const f32 dt)
 {
 	input_poll();
 
@@ -90,14 +91,14 @@ static void _update(const float dt)
 
 	/* check if we changed scenes and act accordingly */
 	if (scene_index_old ^ scene_index) {
-		(*scene_terminate_funcs[scene_index_old])();
+		(*scene_free_funcs[scene_index_old])();
 		(*scene_init_funcs[scene_index])();
 	}
 }
 
 static void _render(void)
 {
-	float subtick = time_accumulated / DELTA_TIME;
+	f32 subtick = time_accumulated / DELTA_TIME;
 
 	rdpq_attach(display_get(), NULL);
 
@@ -109,17 +110,16 @@ static void _render(void)
 	rdpq_detach_show();
 }
 
-static void _terminate(void)
+static void _free(void)
 {
-	fade_transition_terminate();
-	font_terminate();
-	input_terminate();
+	fade_transition_free();
+	font_free();
+	input_free();
 
-	/* terminate active scene */
+	/* free active scene */
 	assertf(scene_index < NUM_SCENE_INDICES,
-		"Scene index %d is invalid. Could not terminate\n",
-		scene_index);
-	(*scene_terminate_funcs[scene_index])();
+		"Scene index %d is invalid. Could not free\n", scene_index);
+	(*scene_free_funcs[scene_index])();
 
 	dfs_close(dfs_handle);
 

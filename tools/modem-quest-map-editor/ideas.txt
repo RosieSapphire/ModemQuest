@@ -1,0 +1,49 @@
+Environment Types:
+	# Type #      # Spawn List #
+	- House 	[Specified Entities]
+	- Cave 		[Bats, Slimes, Ghosts]
+	- City 		[People, Merchants, Thugs]
+	- Woods 	[Wolves, Bears, Birds]
+	- Mountain 	[Wolves, Bears, Mountain Goats]
+	- Cyberspace 	[Hackers, Viruses, Trojans, Ransomware]
+
+NPCS:
+	- Mom
+	- Dad
+	- Grandpa
+	- Sister
+	- Pet Dog [кужо]
+
+Enemies:
+	- Ransomware
+		- Only found in cyberspace. Chase the player and latch onto
+		  them, only letting go when given an item. They die upon
+		  leaving.
+		- Can be killed, but only with a [keygen].
+
+Ambient Damage Types:
+	# Type #      # Circumvention #
+	- Heat 		[Ice Charm]
+	- Freeze 	[Warm Armor]
+	- Poison 	[Gas Mask, Ani-Venom]
+	- Electric 	[Thick-Ass Rubber Boots]
+	- Magic 	[Disposable Defense Items]
+
+Single-Use Scrolls:
+	- Warp 		[Brings you home]
+	- Teleport 	[Go to area of your choice]
+	- Healing 	[Radius of healing (for non-hostile NPCs)]
+	- Light 	[Light up area with too low of a level]
+
+Items:
+	- Lantern 	[Light up low-light areas]
+		- Long-time use
+		- Eventually goes out
+		- Has time limit for active use
+		- When goes out, must be refueled (or replaced if cheap [maybe])
+	- Torch 	[Gives off light, but can also be used as weapon]
+
+Weapons:
+	- Sword
+	- Knife
+	- Gun

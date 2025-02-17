@@ -3,8 +3,6 @@ BUILD_DIR := build
 
 include $(N64_INST)/include/n64.mk
 
-CC := gcc
-
 INC_DIRS := include include/engine include/game
 INC_FLAGS := $(INC_DIRS:%=-I%)
 SRC_DIRS := src src/engine src/game
@@ -66,6 +64,6 @@ clean:
 	rm -rf $(ROM) $(BUILD_DIR) filesystem
 
 format: $(H_FILES) $(C_FILES)
-	clang-format --style=file -i $^
+	clang-format-15 --style=file -i $^
 
 -include $(wildcard $(BUILD_DIR)/*.d)

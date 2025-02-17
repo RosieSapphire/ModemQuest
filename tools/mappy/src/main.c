@@ -46,8 +46,8 @@ int main(const int argc, const char **argv)
 		glClearColor(0.133f, 0.004f, 0.212f, 1);
 		glClear(GL_COLOR_BUFFER_BIT);
 		glDisable(GL_BLEND);
-		for (int y = 0; y < tilemap_height; y++)
-			for (int x = 0; x < tilemap_width; x++)
+		for (int y = 0; y < tilemap.height; y++)
+			for (int x = 0; x < tilemap.width; x++)
 				tilemap_tile_render(x, y,
 						    x == mouse_tile[0] &&
 							    y == mouse_tile[1]);
@@ -78,19 +78,20 @@ static void _init(const char *map_path)
 
 static void _update(int mouse_tile[2], const float dt)
 {
+	const int tile_size = tilemap_is_zoomed ? (TILE_SIZE_PXLS << 1) :
+						  TILE_SIZE_PXLS;
+
 	input_poll(window);
-	mouse_tile[0] =
-		(INPUT_GET_MOUSE(X, NOW) + tilemap_pan_x) / TILE_SIZE_PXLS;
-	mouse_tile[1] =
-		(INPUT_GET_MOUSE(Y, NOW) + tilemap_pan_y) / TILE_SIZE_PXLS;
+	mouse_tile[0] = (INPUT_GET_MOUSE(X, NOW) + tilemap_pan_x) / tile_size;
+	mouse_tile[1] = (INPUT_GET_MOUSE(Y, NOW) + tilemap_pan_y) / tile_size;
 	if (mouse_tile[0] < 0)
 		mouse_tile[0] = 0;
-	if (mouse_tile[0] >= tilemap_width)
-		mouse_tile[0] = tilemap_width - 1;
+	if (mouse_tile[0] >= tilemap.width)
+		mouse_tile[0] = tilemap.width - 1;
 	if (mouse_tile[1] < 0)
 		mouse_tile[1] = 0;
-	if (mouse_tile[1] >= tilemap_height)
-		mouse_tile[1] = tilemap_height - 1;
+	if (mouse_tile[1] >= tilemap.height)
+		mouse_tile[1] = tilemap.height - 1;
 	tilemap_update_mappy(mouse_tile, dt);
 }
 

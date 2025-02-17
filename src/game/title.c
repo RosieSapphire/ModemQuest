@@ -2,7 +2,7 @@
 
 #include "input.h"
 #include "util.h"
-#include "vec2.h"
+#include "vector.h"
 #include "config.h"
 #include "font.h"
 
@@ -118,7 +118,7 @@ void title_render(const float subtick)
 	fade_transition_render(subtick);
 }
 
-void title_terminate(void)
+void title_free(void)
 {
 	sprite_free(gradient_spr);
 	sprite_free(traces_spr);

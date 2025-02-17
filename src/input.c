@@ -83,7 +83,7 @@ void input_poll(void)
 	}
 }
 
-void input_terminate(void)
+void input_free(void)
 {
 	for (int i = 0; i < BUTTON_COUNT; i++) {
 		input_new.button_flags[i] = 0;

@@ -1,7 +1,7 @@
 #include <libdragon.h>
 
 #include "input.h"
-#include "vec2.h"
+#include "vector.h"
 
 #include "engine/tilemap.h"
 #include "engine/player.h"
@@ -11,7 +11,7 @@
 
 void testarea_init(void)
 {
-	vec2i player_spawn_pos;
+	vec2s player_spawn_pos;
 
 	tilemap_init("rom:/testarea.map", player_spawn_pos);
 	player_init(player_spawn_pos);
@@ -39,8 +39,8 @@ void testarea_render(const float subtick)
 	fade_transition_render(subtick);
 }
 
-void testarea_terminate(void)
+void testarea_free(void)
 {
-	player_terminate();
-	tilemap_terminate();
+	player_free();
+	tilemap_free();
 }

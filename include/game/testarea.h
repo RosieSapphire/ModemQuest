@@ -6,6 +6,6 @@
 void testarea_init(void);
 scene_index_t testarea_update(const float dt);
 void testarea_render(const float subtick);
-void testarea_terminate(void);
+void testarea_free(void);
 
 #endif /* _GAME_TESTAREA_H_ */

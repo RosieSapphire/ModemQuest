@@ -1,7 +1,7 @@
 #include <libdragon.h>
 #include <string.h>
 
-#include "vec2.h"
+#include "vector.h"
 #include "input.h"
 #include "config.h"
 #include "font.h"
@@ -9,7 +9,7 @@
 #include "engine/player.h"
 #include "engine/npc.h"
 
-static int npc_handle_dialogue(npc_t *n, int *line_len)
+static int npc_handle_dialogue(struct npc *n, int *line_len)
 {
 	int char_last = *line_len - 1;
 
@@ -35,24 +35,24 @@ static int npc_handle_dialogue(npc_t *n, int *line_len)
 	return 0;
 }
 
-void npc_player_interact(npc_t *n)
+void npc_player_interact(struct npc *n)
 {
-	vec2i player_dist;
-	vec2i npc_pos = { n->pos[0], n->pos[1] };
+	vec2s player_dist;
+	vec2s npc_pos = { n->pos[0], n->pos[1] };
 
 	/* FIXME: This code is being run every frame for every NPC.
 	 * It should only be running on a given NPC if the distance is
 	 * close enough that it would actually matter.
 	 * Optimization for later */
 
-	vec2i_sub(player_dist, player.pos, npc_pos);
+	vec2s_sub(player_dist, player.pos, npc_pos);
 
 	int player_is_close_enough = ((int)fabsf((float)player_dist[0]) +
 				      (int)fabsf((float)player_dist[1])) == 1 &&
 				     player.move_timer == 0;
 	int player_is_facing = false;
 	for (int i = 0; i < 4; i++) {
-		const vec2i dist_vecs[4] = {
+		const vec2s dist_vecs[4] = {
 			{ -1, 0 }, /* on left */
 			{ 1, 0 }, /* on right */
 			{ 0, -1 }, /* above */
@@ -65,7 +65,7 @@ void npc_player_interact(npc_t *n)
 			PLAYER_DIR_UP,
 		};
 
-		if (vec2i_equals(dist_vecs[i], player_dist)) {
+		if (vec2s_equals(dist_vecs[i], player_dist)) {
 			if (player.dir == valid_dirs[i]) {
 				player_is_facing = true;
 				break;
@@ -108,7 +108,7 @@ void npc_player_interact(npc_t *n)
 	n->dialogue_cur = -1;
 }
 
-void npc_dialogue_box_render(const npc_t *n)
+void npc_dialogue_box_render(const struct npc *n)
 {
 	if (n->state != NPC_STATE_TALKING) {
 		return;

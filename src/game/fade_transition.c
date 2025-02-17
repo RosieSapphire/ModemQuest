@@ -107,7 +107,7 @@ void fade_transition_render(const float subtick)
 	rdpq_fill_rectangle(rect[0], rect[3], rect[2], DISPLAY_HEIGHT);
 }
 
-void fade_transition_terminate(void)
+void fade_transition_free(void)
 {
 	sprite_free(circle_spr);
 

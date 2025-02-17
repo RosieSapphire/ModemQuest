@@ -55,6 +55,6 @@ extern input_t input_new, input_old;
 
 void input_init(void);
 void input_poll(void);
-void input_terminate(void);
+void input_free(void);
 
 #endif /* _INPUT_H_ */

@@ -6,6 +6,7 @@
 #include "engine/tilemap.h"
 #include "engine/player.h"
 
+#include "game/scene.h"
 #include "game/fade_transition.h"
 #include "game/testarea.h"
 
@@ -18,9 +19,10 @@ void testarea_init(void)
 	fade_transition_set(FADE_TRANSITION_IN);
 }
 
-scene_index_t testarea_update(const float dt)
+u8 testarea_update(const f32 dt)
 {
 	if (fade_transition_update(INPUT_GET_BTN(START, PRESSED), dt)) {
+		debugf("RETURN TO SENDER\n");
 		return SCENE_INDEX_TITLE;
 	}
 
@@ -30,7 +32,7 @@ scene_index_t testarea_update(const float dt)
 	return SCENE_INDEX_TESTAREA;
 }
 
-void testarea_render(const float subtick)
+void testarea_render(const f32 subtick)
 {
 	rdpq_clear(color_from_packed16(0x0));
 	tilemap_render(subtick);

@@ -39,6 +39,7 @@ $(ELF): $(O_FILES)
 AUDIOCONV_FLAGS := --wav-compress 1
 MKSPRITE_FLAGS := --compress 1
 MKFONT_FLAGS := --compress 1
+MKASSET_FLAGS := --compress 1
 
 filesystem/%.sprite: assets/%.png
 	@mkdir -p $(dir $@)
@@ -59,6 +60,7 @@ filesystem/%.map: assets/%.map
 	@mkdir -p $(dir $@)
 	@echo "    [MQ-MAP] $@"
 	cp $< $@
+	$(N64_BINDIR)/mkasset $(MKASSET_FLAGS) -o filesystem $@
 
 clean:
 	rm -rf $(ROM) $(BUILD_DIR) filesystem

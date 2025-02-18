@@ -13,28 +13,22 @@
 
 static f32 escape_timer;
 
-static void
-_map_path_parse(__attribute__((unused)) char map_path[MAP_PATH_MAX_LEN],
-		const char *argv1)
+static boolean _map_path_verify(char map_path[MAP_PATH_MAX_LEN],
+				const char *argv1)
 {
 	const char *endstr = strrchr(argv1, '.');
 	memset(map_path, 0, MAP_PATH_MAX_LEN);
 	if (!endstr) {
-		snprintf(map_path, MAP_PATH_MAX_LEN, "%s.map", argv1);
-		debugf(DEBUG_TYPE_INFO,
-		       "Imported '%s' (had to add `.map` at end)\n", map_path);
-		return;
+		return false;
 	}
 
-	if (!strncmp(endstr, ".map", 4)) {
-		strncpy(map_path, argv1, strlen(argv1));
-		debugf(DEBUG_TYPE_INFO,
-		       "Imported '%s' (already has `.map` at end)\n", map_path);
-		return;
+	if (strncmp(endstr, ".map", 4)) {
+		return false;
 	}
 
-	assertf(0, "Please enter a valid name, either with "
-		   "'.map' at the end or not. Nothing in between\n");
+	strncpy(map_path, argv1, MAP_PATH_MAX_LEN);
+
+	return true;
 }
 
 int main(const int argc, const char **argv)
@@ -45,7 +39,8 @@ int main(const int argc, const char **argv)
 	debugf(DEBUG_TYPE_INFO, "OpenGL Instance Initialized\n");
 
 	char map_path[MAP_PATH_MAX_LEN];
-	_map_path_parse(map_path, argv[1]);
+	assertf(_map_path_verify(map_path, argv[1]),
+		"Please enter a valid name, with '.map' at the end\n");
 	mqme_init(map_path, "fonts/jbm.ttf");
 	debugf(DEBUG_TYPE_INFO, "MQME Instance Initialized\n");
 

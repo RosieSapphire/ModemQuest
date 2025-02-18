@@ -26,8 +26,8 @@ void main(void)
 		    (u_tile_type_count + 1), a_uv.y);
 
 	int col16 = u_colors[gl_InstanceID];
-	o_col = vec4(float((col16 & 0x003E) >> 1) / 0x1F,
+	o_col = vec4(float((col16 & 0xF800) >> 11) / 0x1F,
 		     float((col16 & 0x07C0) >> 6) / 0x1F,
-		     float((col16 & 0xF800) >> 11) / 0x1F,
+		     float((col16 & 0x003E) >> 1) / 0x1F,
 		     u_colors[gl_InstanceID] & 0x1);
 }

@@ -10,7 +10,7 @@ struct tilemap tilemap;
 
 void tilemap_init(const char *path, vec2s spawn_pos)
 {
-	FILE *file = fopen(path, "rb");
+	FILE *file = asset_fopen(path, NULL);
 
 	assertf(file, "Failed to load tilemap from '%s'\n", path);
 

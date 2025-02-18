@@ -116,7 +116,6 @@ static int _player_update_collision(const vec2s pos_old, const vec2s move,
 	if (TILE_TYPE_IS_COLLIDABLE(
 		    tilemap.tiles[pos_new[1]][pos_new[0]].type)) {
 		vec2s_copy(pos_new, pos_old);
-		// debugf("Nope: (%d, %d)\n", move[0], move[1]);
 		is_unable_to_move = true;
 		player.move_timer = 0.f;
 	}
@@ -209,7 +208,6 @@ void player_render(const float subtick)
 
 	player_get_pos_lerped(real_pos, subtick);
 
-	// debug goal points a and b
 	/*
 	const uint16_t col2 = (0x03 << 11) | (0x8 << 6) | (0xA << 1) | 1;
 	vec2f goal_a_pos;

@@ -26,8 +26,11 @@
 
 #define TILEMAP_WIDTH_MIN 1
 #define TILEMAP_HEIGHT_MIN 1
+#define TILEMAP_NPC_MAX_COUNT 64
+#define TILEMAP_DOOR_MAX_COUNT 64
 #define TILEMAP_RENDER_INSTANCE_COUNT 512
 #define TILEMAP_RENDER_INSTANCE_SIZE 128
+#define TILEMAP_NAME_MAX_LEN 64
 
 #define PANNING_PXLS_PER_SEC 512
 
@@ -65,7 +68,8 @@
 
 #include "mqme.h"
 
-static const char *tilemap_name;
+static const char *tilemap_path;
+static char tilemap_name[TILEMAP_NAME_MAX_LEN];
 static boolean tilemap_size_ratio_lock;
 static boolean tilemap_show_types;
 static vec2 tilemap_sizef;
@@ -115,6 +119,64 @@ static void _glfw_scroll_callback(__attribute__((unused)) GLFWwindow *window,
 	if (tilemap_zoom < .1f) {
 		tilemap_zoom = .1f;
 	}
+}
+
+static void _mqme_tilemap_init_from_file(void)
+{
+	FILE *mapfile = fopen(tilemap_path, "rb");
+	if (!mapfile) {
+		debugf(DEBUG_TYPE_INFO, "'%s' not found, creating.\n",
+		       tilemap_path);
+		tilemap.width = 10;
+		tilemap.height = 10;
+		tilemap_sizef[0] = (f32)tilemap.width;
+		tilemap_sizef[1] = (f32)tilemap.height;
+		tilemap.map_index = 0;
+		for (int y = 0; y < TILEMAP_HEIGHT_MAX; y++) {
+			for (int x = 0; x < TILEMAP_WIDTH_MAX; x++) {
+				*((u32 *)(tilemap.tiles[y] + x)) =
+					(0xFFFF << 16) | TILE_TYPE_FLOOR;
+			}
+		}
+
+		tilemap.npc_count = 0;
+		tilemap.npcs = malloc(0);
+
+		tilemap.door_count = 0;
+		tilemap.doors = malloc(0);
+		return;
+	}
+
+	debugf(DEBUG_TYPE_INFO, "'%s' found, loading.\n", tilemap_path);
+
+	fread_ef16(&tilemap.map_index, mapfile);
+	fread(&tilemap.width, 1, 1, mapfile);
+	fread(&tilemap.height, 1, 1, mapfile);
+	fread(&tilemap.npc_count, 1, 1, mapfile);
+	fread(&tilemap.door_count, 1, 1, mapfile);
+	tilemap_sizef[0] = tilemap.width;
+	tilemap_sizef[1] = tilemap.height;
+	for (int y = 0; y < TILEMAP_HEIGHT_MAX; y++) {
+		for (int x = 0; x < TILEMAP_WIDTH_MAX; x++) {
+			struct tile *t = tilemap.tiles[y] + x;
+			if (y >= tilemap.height || x >= tilemap.width) {
+				t->type = TILE_TYPE_FLOOR;
+				t->color = 0xFFFF;
+				continue;
+			}
+
+			fread(&t->type, 1, 1, mapfile);
+			fread_ef16(&t->color, mapfile);
+		}
+	}
+
+	/* TODO: COME BACK TO THIS! READ THE NPCS!
+	tilemap.npc_count = 0;
+	tilemap.npcs = malloc(0);
+
+	tilemap.door_count = 0;
+	tilemap.doors = malloc(0);
+	*/
 }
 
 void mqme_init(const char *path, const char *font_path)
@@ -177,30 +239,17 @@ void mqme_init(const char *path, const char *font_path)
 	glCullFace(GL_BACK);
 
 	/* TILEMAP */
-	tilemap_name = path;
+	tilemap_path = path;
+
+	char *slash_ptr = strrchr(tilemap_path, '/');
+	strncpy(tilemap_name, slash_ptr ? (slash_ptr + 1) : tilemap_path,
+		TILEMAP_NAME_MAX_LEN);
 	tilemap_size_ratio_lock = false;
 	tilemap_show_types = false;
-	tilemap_sizef[0] = 10.f;
-	tilemap_sizef[1] = 10.f;
-	tilemap.width = (u8)tilemap_sizef[0];
-	tilemap.height = (u8)tilemap_sizef[1];
-	tilemap.map_index = 0;
-	tilemap.npc_count = 0;
-	tilemap.door_count = 0;
-	for (int y = 0; y < TILEMAP_HEIGHT_MAX; y++) {
-		for (int x = 0; x < TILEMAP_WIDTH_MAX; x++) {
-			struct tile *t = tilemap.tiles[y] + x;
-			t->type = TILE_TYPE_FLOOR;
-			t->color = 0xFFFF;
-		}
-	}
-	memset(tilemap.npcs, 0, TILEMAP_NPC_MAX_COUNT * sizeof(*tilemap.npcs));
-	memset(tilemap.doors, 0,
-	       TILEMAP_DOOR_MAX_COUNT * sizeof(*tilemap.doors));
-
 	tilemap_zoom = 1.f;
 	tile_selected = (struct tile){ .type = TILE_TYPE_FLOOR,
 				       .color = (rand() & 0xFFFF) | 1 };
+	_mqme_tilemap_init_from_file();
 	_mqme_tilemap_center_in_view();
 
 	/* NUKLEAR */
@@ -225,6 +274,7 @@ static void _mqme_update_view_offset(const f32 dt)
 	tilemap_pan[1] += (glfwGetKey(glfw_win, GLFW_KEY_W) -
 			   glfwGetKey(glfw_win, GLFW_KEY_S)) *
 			  dt * PANNING_PXLS_PER_SEC * speed_mul;
+	/*
 	if (tilemap.width <= 52) {
 		if (tilemap_pan[0] < NK_RECT_PANEL_MAIN_WIDTH) {
 			tilemap_pan[0] = NK_RECT_PANEL_MAIN_WIDTH;
@@ -248,6 +298,33 @@ static void _mqme_update_view_offset(const f32 dt)
 				((tilemap.height - 1) * TILE_SIZE_PXLS);
 		}
 	}
+	*/
+}
+
+static int rect_place_state = 0;
+
+static void _mqme_update_rect_fill(ivec2 hover_pos)
+{
+	static ivec2 rect_place_a, rect_place_b;
+	if (!rect_place_state) {
+		glm_ivec2_copy(hover_pos, rect_place_a);
+		rect_place_state = 1;
+		return;
+	}
+
+	glm_ivec2_copy(hover_pos, rect_place_b);
+
+	ivec2 minpos = { fmin(rect_place_a[0], rect_place_b[0]),
+			 fmin(rect_place_a[1], rect_place_b[1]) };
+	ivec2 maxpos = { fmax(rect_place_a[0], rect_place_b[0]),
+			 fmax(rect_place_a[1], rect_place_b[1]) };
+	for (int y = minpos[1]; y < maxpos[1] + 1; y++) {
+		for (int x = minpos[0]; x < maxpos[0] + 1; x++) {
+			tilemap.tiles[y][x] = tile_selected;
+		}
+	}
+
+	rect_place_state = 0;
 }
 
 static void _mqme_update_tile_selected(void)
@@ -267,38 +344,10 @@ static void _mqme_update_tile_selected(void)
 	struct tile *tile_hover =
 		tilemap.tiles[tile_hover_pos[1]] + tile_hover_pos[0];
 
-	/* TODO: place rect */
-	static int rect_place_state = 0;
-	static ivec2 rect_place_a, rect_place_b;
 	static int rmb_new = 0, rmb_old = 0;
 	rmb_new = glfwGetMouseButton(glfw_win, GLFW_MOUSE_BUTTON_RIGHT);
 	if ((rmb_new ^ rmb_old) && rmb_new) {
-		switch (rect_place_state) {
-		case 0:
-			glm_ivec2_copy(tile_hover_pos, rect_place_a);
-			rect_place_state = 1;
-			break;
-
-		case 1: {
-			glm_ivec2_copy(tile_hover_pos, rect_place_b);
-
-			ivec2 minpos = { fmin(rect_place_a[0], rect_place_b[0]),
-					 fmin(rect_place_a[1],
-					      rect_place_b[1]) };
-			ivec2 maxpos = { fmax(rect_place_a[0], rect_place_b[0]),
-					 fmax(rect_place_a[1],
-					      rect_place_b[1]) };
-			for (int y = minpos[1]; y < maxpos[1] + 1; y++) {
-				for (int x = minpos[0]; x < maxpos[0] + 1;
-				     x++) {
-					tilemap.tiles[y][x] = tile_selected;
-				}
-			}
-			rect_place_state = 0;
-			break;
-		}
-		}
-		debugf(DEBUG_TYPE_INFO, "state=%d\n", rect_place_state);
+		_mqme_update_rect_fill(tile_hover_pos);
 	}
 	rmb_old = rmb_new;
 
@@ -327,25 +376,27 @@ static void _mqme_tilemap_size_process(void)
 	glm_vec2_copy(tilemap_sizef, old);
 	nk_layout_row_begin(nk_ctx, NK_STATIC, 20, 2);
 	for (int i = 0; i < 2; i++) {
+		const int min = i ? TILEMAP_HEIGHT_MIN : TILEMAP_WIDTH_MIN;
+		const int max = i ? TILEMAP_HEIGHT_MAX : TILEMAP_WIDTH_MAX;
+		const char *str = i ? "H" : "W";
 		nk_layout_row_push(nk_ctx, 115);
-		nk_property_float(
-			nk_ctx, i ? "H" : "W",
-			i ? TILEMAP_HEIGHT_MIN : TILEMAP_WIDTH_MIN,
-			tilemap_sizef + i,
-			(i ? TILEMAP_HEIGHT_MAX : TILEMAP_WIDTH_MAX) - 1, 1, 1);
+		nk_property_float(nk_ctx, str, min, tilemap_sizef + i, max - 1,
+				  1, 1);
 		nk_layout_row_push(nk_ctx, 64);
 		if (nk_button_label(nk_ctx, "Round")) {
 			tilemap_sizef[i] = roundf(tilemap_sizef[i]);
 			debugf(DEBUG_TYPE_INFO, "Rounded Map Width to %d\n",
 			       (int)tilemap_sizef[i]);
-			return;
 		}
 	}
+
 	nk_layout_row_end(nk_ctx);
 
 	nk_layout_row_dynamic(nk_ctx, 20, 1);
-	nk_checkbox_label(nk_ctx, "Lock Aspect",
-			  (int *)&tilemap_size_ratio_lock);
+
+	int ratio_lock_prop = tilemap_size_ratio_lock;
+	nk_checkbox_label(nk_ctx, "Lock Aspect", &ratio_lock_prop);
+	tilemap_size_ratio_lock = (boolean)ratio_lock_prop;
 
 	if (!tilemap_size_ratio_lock) {
 		return;
@@ -378,22 +429,20 @@ static void _mqme_tilemap_size_process(void)
 
 static void _mqme_nk_panel_main(void)
 {
-	if (!nk_tree_push(nk_ctx, NK_TREE_TAB, "Map Settings", 0)) {
-		return;
-	}
+	if (nk_tree_push(nk_ctx, NK_TREE_TAB, "Map Settings", 0)) {
+		nk_layout_row_dynamic(nk_ctx, 8, 1);
 
-	nk_layout_row_dynamic(nk_ctx, 8, 1);
+		if (nk_tree_push(nk_ctx, NK_TREE_TAB, "Size", 0)) {
+			_mqme_tilemap_size_process();
+			if (nk_button_label(nk_ctx, "Center in View")) {
+				_mqme_tilemap_center_in_view();
+			}
 
-	if (nk_tree_push(nk_ctx, NK_TREE_TAB, "Size", 0)) {
-		_mqme_tilemap_size_process();
-		if (nk_button_label(nk_ctx, "Center in View")) {
-			_mqme_tilemap_center_in_view();
+			nk_tree_pop(nk_ctx);
 		}
 
 		nk_tree_pop(nk_ctx);
 	}
-
-	nk_tree_pop(nk_ctx);
 }
 
 static void _mqme_nk_panel_tile(void)
@@ -404,9 +453,9 @@ static void _mqme_nk_panel_tile(void)
 
 	/* Color */
 	struct nk_colorf tile_colf = {
-		.r = (f32)((tile_selected.color & 0x003E) >> 1) / 31.f,
+		.r = (f32)((tile_selected.color & 0xF800) >> 11) / 31.f,
 		.g = (f32)((tile_selected.color & 0x07C0) >> 6) / 31.f,
-		.b = (f32)((tile_selected.color & 0xF800) >> 11) / 31.f,
+		.b = (f32)((tile_selected.color & 0x003E) >> 1) / 31.f,
 		.a = 1.f
 	};
 	if (nk_combo_begin_color(nk_ctx, nk_rgb_cf(tile_colf),
@@ -415,9 +464,9 @@ static void _mqme_nk_panel_tile(void)
 		tile_colf = nk_color_picker(nk_ctx, tile_colf, NK_RGB);
 		nk_combo_end(nk_ctx);
 	}
-	tile_selected.color = (u8)(tile_colf.r * 31.f) << 1 |
+	tile_selected.color = (u8)(tile_colf.r * 31.f) << 11 |
 			      (u8)(tile_colf.g * 31.f) << 6 |
-			      (u8)(tile_colf.b * 31.f) << 11 | 1;
+			      (u8)(tile_colf.b * 31.f) << 1 | 1;
 
 	/* Type */
 	nk_label(nk_ctx, "Type:", NK_TEXT_LEFT);
@@ -530,7 +579,7 @@ static void _mqme_tiles_render(void)
 static void _mqme_tilemap_save(void)
 {
 	/* FIXME: Separate name and path */
-	FILE *file = fopen(tilemap_name, "wb");
+	FILE *file = fopen(tilemap_path, "wb");
 
 	fwrite_ef16(&tilemap.map_index, file);
 	fwrite(&tilemap.width, 1, 1, file);
@@ -542,7 +591,6 @@ static void _mqme_tilemap_save(void)
 	for (int y = 0; y < tilemap.height; y++) {
 		for (int x = 0; x < tilemap.width; x++) {
 			const struct tile *t = tilemap.tiles[y] + x;
-
 			fwrite(&t->type, 1, 1, file);
 			fwrite_ef16(&t->color, file);
 		}
@@ -580,7 +628,7 @@ static void _mqme_tilemap_save(void)
 
 	fclose(file);
 	/* FIXME: Again, path and name separated */
-	debugf(DEBUG_TYPE_INFO, "TILEMAP SAVED TO '%s'\n", tilemap_name);
+	debugf(DEBUG_TYPE_INFO, "TILEMAP SAVED TO '%s'\n", tilemap_path);
 }
 
 void mqme_render(void)
@@ -606,8 +654,16 @@ void mqme_render(void)
 		if (nk_button_label(nk_ctx, "SAVE")) {
 			_mqme_tilemap_save();
 		}
-		nk_checkbox_label(nk_ctx, "Show Tile Types",
-				  (int *)&tilemap_show_types);
+
+		if (nk_button_label(nk_ctx, "SAVE & QUIT")) {
+			_mqme_tilemap_save();
+			mqme_free();
+			exit(EXIT_SUCCESS);
+		}
+
+		int show_types_prop = tilemap_show_types;
+		nk_checkbox_label(nk_ctx, "Show Tile Types", &show_types_prop);
+		tilemap_show_types = show_types_prop;
 		nk_end(nk_ctx);
 	}
 
@@ -631,29 +687,34 @@ void mqme_render(void)
 
 void mqme_free(void)
 {
-	/* TILEMAP */
-	tilemap.map_index = -1;
-	tilemap.width = 0;
-	tilemap.height = 0;
-	tilemap.npc_count = 0;
-	tilemap.door_count = 0;
-	memset(tilemap.tiles, 0,
-	       TILEMAP_HEIGHT_MAX * TILEMAP_WIDTH_MAX *
-		       sizeof(**tilemap.tiles));
-	memset(tilemap.npcs, 0, TILEMAP_NPC_MAX_COUNT * sizeof(*tilemap.npcs));
-	memset(tilemap.doors, 0,
-	       TILEMAP_DOOR_MAX_COUNT * sizeof(*tilemap.doors));
-	glm_vec2_zero(tilemap_sizef);
-	tilemap_size_ratio_lock = false;
-	tilemap_name = NULL;
-
 	/* NUKLEAR */
-	nk_font_atlas_cleanup(nk_font_atlas);
 	nk_glfw3_shutdown();
+	nk_free(nk_ctx);
+
+	/* TILEMAP */
+	*((u32 *)&tile_selected) = 0x0;
+	tilemap_zoom = 0.f;
+
+	free(tilemap.doors);
+	tilemap.door_count = 0;
+
+	free(tilemap.npcs);
+	tilemap.npc_count = 0;
+
+	memset(*tilemap.tiles, 0, TILEMAP_WIDTH_MAX * sizeof(**tilemap.tiles));
+	memset(*tilemap.tiles, 0, TILEMAP_HEIGHT_MAX * sizeof(*tilemap.tiles));
+	tilemap.map_index = 0;
+	tilemap.height = 0;
+	tilemap.width = 0;
+	tilemap_sizef[1] = 0.f;
+	tilemap_sizef[0] = 0.f;
+	tilemap_show_types = false;
+	tilemap_size_ratio_lock = false;
+	tilemap_path = NULL;
 
 	/* OPENGL */
-	shader_free(rect_shader_prog);
 	glDeleteTextures(1, &tile_texture_id);
+	shader_free(rect_shader_prog);
 	glDeleteBuffers(1, &rect_ebo);
 	glDeleteBuffers(1, &rect_vbo);
 	glDeleteVertexArrays(1, &rect_vao);

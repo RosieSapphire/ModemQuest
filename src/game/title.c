@@ -6,6 +6,7 @@
 #include "config.h"
 #include "font.h"
 
+#include "game/scene.h"
 #include "game/fade_transition.h"
 #include "game/title.h"
 
@@ -19,7 +20,7 @@ static sprite_t *logo_spr = NULL;
 static sprite_t *traces_spr = NULL;
 static sprite_t *gradient_spr = NULL;
 
-static float timer = 0.f, timer_old = 0.f;
+static f32 timer = 0.f, timer_old = 0.f;
 static vec2f bg_pos = { 0.f, 0.f }, bg_pos_old = { 0.f, 0.f };
 
 void title_init(void)
@@ -35,7 +36,7 @@ void title_init(void)
 	vec2f_zero(bg_pos_old);
 }
 
-scene_index_t title_update(const float dt)
+u8 title_update(const f32 dt)
 {
 	/* check for exit */
 	if (fade_transition_update(INPUT_GET_BTN(START, PRESSED), dt)) {
@@ -63,9 +64,9 @@ scene_index_t title_update(const float dt)
 	return SCENE_INDEX_TITLE;
 }
 
-void title_render(const float subtick)
+void title_render(const f32 subtick)
 {
-	const float timer_lerp = lerpf(timer_old, timer, subtick);
+	const f32 timer_lerp = lerpf(timer_old, timer, subtick);
 	vec2f bg_pos_lerp;
 	vec2f_lerp(bg_pos_lerp, bg_pos_old, bg_pos, subtick);
 
@@ -83,7 +84,7 @@ void title_render(const float subtick)
 			       timer_lerp * 512.f, 0);
 
 	/* TRACES */
-	const float traces_fade = (cosf(timer_lerp * PI) + 1.f) * .5f;
+	const f32 traces_fade = (cosf(timer_lerp * PI) + 1.f) * .5f;
 	const color_t traces_color =
 		RGBA16(lerpf(.588f, .878f, traces_fade) * 31,
 		       lerpf(.263f, .431f, traces_fade) * 31,

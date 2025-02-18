@@ -2,5 +2,4 @@ build/
 filesystem/
 *.json
 *.z64
-Story.md
-tools/mappy/*.map
+tools/modem-quest-map-editor/*.map

@@ -15,9 +15,6 @@
 
 #define TILEMAP_WIDTH_MAX 256
 #define TILEMAP_HEIGHT_MAX 256
-#define TILEMAP_NPC_MAX_COUNT 128
-#define TILEMAP_DOOR_MAX_COUNT 32
-
 #define TILEMAP_MAP_INDEX_MAX 255
 
 #define TILE_SIZE_PXLS 32
@@ -46,8 +43,8 @@ struct tilemap {
 	u8 npc_count;
 	u8 door_count;
 	struct tile tiles[TILEMAP_HEIGHT_MAX][TILEMAP_WIDTH_MAX];
-	struct npc npcs[TILEMAP_NPC_MAX_COUNT];
-	struct door doors[TILEMAP_DOOR_MAX_COUNT];
+	struct npc *npcs;
+	struct door *doors;
 };
 
 extern struct tilemap tilemap;

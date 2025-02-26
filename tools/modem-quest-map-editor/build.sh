@@ -1,5 +1,7 @@
 #!/bin/bash
 
+PROG=mqme
+
 clear
 make format -j
 case "$1" in
@@ -13,11 +15,11 @@ case "$1" in
 		;;
 	
 	"run")
-		bear -- make -j && ./mqme $2
+		bear -- make -j && ./$PROG $2
 		;;
 
 	"debug")
-		bear -- make -j && gdb --args ./mqme $2
+		bear -- make -j && gdb --args ./$PROG $2
 		;;
 
 	*)

@@ -1,5 +1,5 @@
-#ifndef _MQME_TYPES_H_
-#define _MQME_TYPES_H_
+#ifndef MQME_TYPES_H
+#define MQME_TYPES_H
 
 #include <stdint.h>
 #include <stdbool.h>
@@ -16,4 +16,4 @@ typedef float f32;
 typedef double f64;
 typedef _Bool boolean;
 
-#endif /* _MQME_TYPES_H_ */
+#endif /* MQME_TYPES_H */

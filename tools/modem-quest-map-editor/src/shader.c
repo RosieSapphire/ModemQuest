@@ -8,6 +8,7 @@ u32 shader_init_from_file(const char *vpath, const char *fpath)
 {
 	u32 vert = glCreateShader(GL_VERTEX_SHADER);
 	u32 frag = glCreateShader(GL_FRAGMENT_SHADER);
+	u32 prog;
 	int vert_stat, frag_stat, prog_stat;
 	char *vert_src = file_read_data(vpath);
 	char *frag_src = file_read_data(fpath);
@@ -25,12 +26,13 @@ u32 shader_init_from_file(const char *vpath, const char *fpath)
 		glGetShaderInfoLog(vert, 512, NULL, log);
 		assertf(0, "Vertex Shader failed to compile: %s\n", log);
 	}
+
 	if (!frag_stat) {
 		glGetShaderInfoLog(frag, 512, NULL, log);
 		assertf(0, "Fragment Shader failed to compile: %s\n", log);
 	}
 
-	u32 prog = glCreateProgram();
+	prog = glCreateProgram();
 	glAttachShader(prog, vert);
 	glAttachShader(prog, frag);
 	glLinkProgram(prog);

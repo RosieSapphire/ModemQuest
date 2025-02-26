@@ -1,3 +1,8 @@
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wpadded"
+#pragma clang diagnostic ignored "-Wimplicit-int-float-conversion"
+#pragma clang diagnostic ignored "-Wreserved-identifier"
+#pragma clang diagnostic ignored "-Wunsafe-buffer-usage"
 /*
  * Nuklear - 1.32.0 - public domain
  * no warrenty implied; use at your own risk.
@@ -274,8 +279,11 @@ NK_API void nk_glfw3_render(enum nk_anti_aliasing AA, int max_vertex_buffer,
 			NK_MEMSET(&config, 0, sizeof(config));
 			config.vertex_layout = vertex_layout;
 			config.vertex_size = sizeof(struct nk_glfw_vertex);
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wnull-pointer-subtraction"
 			config.vertex_alignment =
 				NK_ALIGNOF(struct nk_glfw_vertex);
+#pragma clang diagnostic pop
 			config.null = dev->null;
 			config.circle_segment_count = 22;
 			config.curve_segment_count = 22;
@@ -546,3 +554,4 @@ void nk_glfw3_shutdown(void)
 }
 
 #endif
+#pragma clang diagnostic pop

@@ -1,3 +1,18 @@
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wreserved-identifier"
+#pragma clang diagnostic ignored "-Wpadded"
+#pragma clang diagnostic ignored "-Wimplicit-int-float-conversion"
+#pragma clang diagnostic ignored "-Wformat-nonliteral"
+#pragma clang diagnostic ignored "-Wimplicit-fallthrough"
+#pragma clang diagnostic ignored "-Wcovered-switch-default"
+#pragma clang diagnostic ignored "-Wfloat-equal"
+#pragma clang diagnostic ignored "-Wswitch-enum"
+#pragma clang diagnostic ignored "-Wcomma"
+#pragma clang diagnostic ignored "-Wenum-enum-conversion"
+#pragma clang diagnostic ignored "-Wextra-semi-stmt"
+#pragma clang diagnostic ignored "-Wused-but-marked-unused"
+#pragma clang diagnostic ignored "-Wsign-conversion"
+#pragma clang diagnostic ignored "-Wunsafe-buffer-usage"
 /*
 /// # Nuklear
 /// ![](https://cloud.githubusercontent.com/assets/8057201/11761525/ae06f0ca-a0c6-11e5-819d-5610b25f6ef4.gif)
@@ -9112,7 +9127,7 @@ NK_API int nk_str_append_str_utf8(struct nk_str *str, const char *text)
 {
 	int runes = 0;
 	int byte_len = 0;
-	int num_runes = 0;
+	// int num_runes = 0;
 	int glyph_len = 0;
 	nk_rune unicode;
 	if (!str || !text)
@@ -9122,7 +9137,7 @@ NK_API int nk_str_append_str_utf8(struct nk_str *str, const char *text)
 	while (unicode != '\0' && glyph_len) {
 		glyph_len = nk_utf_decode(text + byte_len, &unicode, 4);
 		byte_len += glyph_len;
-		num_runes++;
+		// num_runes++;
 	}
 	nk_str_append_text_char(str, text, byte_len);
 	return runes;
@@ -9251,7 +9266,7 @@ NK_API int nk_str_insert_str_utf8(struct nk_str *str, int pos, const char *text)
 {
 	int runes = 0;
 	int byte_len = 0;
-	int num_runes = 0;
+	// int num_runes = 0;
 	int glyph_len = 0;
 	nk_rune unicode;
 	if (!str || !text)
@@ -9261,7 +9276,7 @@ NK_API int nk_str_insert_str_utf8(struct nk_str *str, int pos, const char *text)
 	while (unicode != '\0' && glyph_len) {
 		glyph_len = nk_utf_decode(text + byte_len, &unicode, 4);
 		byte_len += glyph_len;
-		num_runes++;
+		// num_runes++;
 	}
 	nk_str_insert_at_rune(str, pos, text, byte_len);
 	return runes;
@@ -9552,7 +9567,10 @@ NK_LIB void nk_command_buffer_reset(struct nk_command_buffer *b)
 NK_LIB void *nk_command_buffer_push(struct nk_command_buffer *b,
 				    enum nk_command_type t, nk_size size)
 {
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wnull-pointer-subtraction"
 	NK_STORAGE const nk_size align = NK_ALIGNOF(struct nk_command);
+#pragma clang diagnostic pop
 	struct nk_command *cmd;
 	nk_size alignment;
 	void *unaligned;
@@ -10150,7 +10168,10 @@ NK_INTERN struct nk_vec2 *nk_draw_list_alloc_path(struct nk_draw_list *list,
 						  int count)
 {
 	struct nk_vec2 *points;
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wnull-pointer-subtraction"
 	NK_STORAGE const nk_size point_align = NK_ALIGNOF(struct nk_vec2);
+#pragma clang diagnostic pop
 	NK_STORAGE const nk_size point_size = sizeof(struct nk_vec2);
 	points = (struct nk_vec2 *)nk_buffer_alloc(list->buffer,
 						   NK_BUFFER_FRONT,
@@ -10181,7 +10202,10 @@ NK_INTERN struct nk_draw_command *
 nk_draw_list_push_command(struct nk_draw_list *list, struct nk_rect clip,
 			  nk_handle texture)
 {
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wnull-pointer-subtraction"
 	NK_STORAGE const nk_size cmd_align = NK_ALIGNOF(struct nk_draw_command);
+#pragma clang diagnostic pop
 	NK_STORAGE const nk_size cmd_size = sizeof(struct nk_draw_command);
 	struct nk_draw_command *cmd;
 
@@ -10304,7 +10328,10 @@ NK_INTERN nk_draw_index *nk_draw_list_alloc_elements(struct nk_draw_list *list,
 {
 	nk_draw_index *ids;
 	struct nk_draw_command *cmd;
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wnull-pointer-subtraction"
 	NK_STORAGE const nk_size elem_align = NK_ALIGNOF(nk_draw_index);
+#pragma clang diagnostic pop
 	NK_STORAGE const nk_size elem_size = sizeof(nk_draw_index);
 	NK_ASSERT(list);
 	if (!list)
@@ -10543,7 +10570,10 @@ NK_API void nk_draw_list_stroke_poly_line(struct nk_draw_list *list,
 	if (aliasing == NK_ANTI_ALIASING_ON) {
 		/* ANTI-ALIASED STROKE */
 		const float AA_SIZE = 1.0f;
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wnull-pointer-subtraction"
 		NK_STORAGE const nk_size pnt_align = NK_ALIGNOF(struct nk_vec2);
+#pragma clang diagnostic pop
 		NK_STORAGE const nk_size pnt_size = sizeof(struct nk_vec2);
 
 		/* allocate vertices and elements  */
@@ -10851,7 +10881,10 @@ NK_API void nk_draw_list_fill_poly_convex(struct nk_draw_list *list,
 	struct nk_colorf col;
 	struct nk_colorf col_trans;
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wnull-pointer-subtraction"
 	NK_STORAGE const nk_size pnt_align = NK_ALIGNOF(struct nk_vec2);
+#pragma clang diagnostic pop
 	NK_STORAGE const nk_size pnt_size = sizeof(struct nk_vec2);
 	NK_ASSERT(list);
 	if (!list || points_count < 3)
@@ -14150,11 +14183,14 @@ struct nk_font_baker {
 	struct nk_tt_pack_range *ranges;
 };
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wnull-pointer-subtraction"
 NK_GLOBAL const nk_size nk_rect_align = NK_ALIGNOF(struct nk_rp_rect);
 NK_GLOBAL const nk_size nk_range_align = NK_ALIGNOF(struct nk_tt_pack_range);
 NK_GLOBAL const nk_size nk_char_align = NK_ALIGNOF(struct nk_tt_packedchar);
 NK_GLOBAL const nk_size nk_build_align = NK_ALIGNOF(struct nk_font_bake_data);
 NK_GLOBAL const nk_size nk_baker_align = NK_ALIGNOF(struct nk_font_baker);
+#pragma clang diagnostic pop
 
 NK_INTERN int nk_range_count(const nk_rune *range)
 {
@@ -17155,8 +17191,11 @@ NK_LIB struct nk_page_element *nk_create_page_element(struct nk_context *ctx)
 	} else {
 		/* allocate new page element from back of fixed size memory buffer */
 		NK_STORAGE const nk_size size = sizeof(struct nk_page_element);
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wnull-pointer-subtraction"
 		NK_STORAGE const nk_size align =
 			NK_ALIGNOF(struct nk_page_element);
+#pragma clang diagnostic pop
 		elem = (struct nk_page_element *)nk_buffer_alloc(
 			&ctx->memory, NK_BUFFER_BACK, size, align);
 		NK_ASSERT(elem);
@@ -28618,3 +28657,4 @@ NK_API void nk_tooltipfv(struct nk_context *ctx, const char *fmt, va_list args)
 /// in libraries and brought me to create some of my own. Finally Apoorva Joshi
 /// for his single header file packer.
 */
+#pragma clang diagnostic pop

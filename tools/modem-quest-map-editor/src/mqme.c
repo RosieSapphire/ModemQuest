@@ -1,3 +1,6 @@
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunsafe-buffer-usage"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -17,8 +20,6 @@
 #include "stb_image.h"
 
 #define IS_USING_MQME
-#include "../../../include/engine/npc.h"
-#include "../../../include/engine/door.h"
 #include "../../../include/engine/tilemap.h"
 
 #undef TILE_SIZE_PXLS
@@ -28,8 +29,10 @@
 
 #define TILEMAP_WIDTH_MIN 1
 #define TILEMAP_HEIGHT_MIN 1
+/* TODO: THESE WILL BE NEEDED!
 #define TILEMAP_NPC_MAX_COUNT 64
 #define TILEMAP_DOOR_MAX_COUNT 64
+*/
 #define TILEMAP_RENDER_INSTANCE_COUNT 512
 #define TILEMAP_RENDER_INSTANCE_SIZE 128
 #define TILEMAP_NAME_MAX_LEN 64
@@ -41,28 +44,29 @@
 #define NK_ELEM_BUF_SIZE (128 * 1024)
 #define NK_STR_MAX_LEN 128
 
-#define NK_RECT_PANEL_TOP_HEIGHT 86
+#define NK_RECT_PANEL_TOP_HEIGHT 86.f
 #define NK_RECT_PANEL_TOP \
-	(nk_rect(0, 0, glfw_win_size[0], NK_RECT_PANEL_TOP_HEIGHT))
+	(nk_rect(0.f, 0.f, (f32)glfw_win_size[0], NK_RECT_PANEL_TOP_HEIGHT))
 
-#define NK_RECT_PANEL_MAIN_WIDTH 240
-#define NK_RECT_PANEL_MAIN                                              \
-	(nk_rect(0, NK_RECT_PANEL_TOP_HEIGHT, NK_RECT_PANEL_MAIN_WIDTH, \
-		 glfw_win_size[1] - NK_RECT_PANEL_TOP_HEIGHT))
+#define NK_RECT_PANEL_MAIN_WIDTH 240.f
+#define NK_RECT_PANEL_MAIN                                                \
+	(nk_rect(0.f, NK_RECT_PANEL_TOP_HEIGHT, NK_RECT_PANEL_MAIN_WIDTH, \
+		 (f32)glfw_win_size[1] - NK_RECT_PANEL_TOP_HEIGHT))
 
-#define NK_RECT_PANEL_TILE_WIDTH 240
+#define NK_RECT_PANEL_TILE_WIDTH 240.f
 #define NK_RECT_PANEL_TILE                                           \
-	(nk_rect(glfw_win_size[0] - NK_RECT_PANEL_TILE_WIDTH,        \
+	(nk_rect((f32)glfw_win_size[0] - NK_RECT_PANEL_TILE_WIDTH,   \
 		 NK_RECT_PANEL_TOP_HEIGHT, NK_RECT_PANEL_TILE_WIDTH, \
-		 glfw_win_size[1] - NK_RECT_PANEL_TOP_HEIGHT))
+		 (f32)glfw_win_size[1] - NK_RECT_PANEL_TOP_HEIGHT))
 
-#define NK_RECT_PANEL_NPC_WIDTH \
-	(glfw_win_size[0] -     \
+#define NK_RECT_PANEL_NPC_WIDTH  \
+	((f32)glfw_win_size[0] - \
 	 (NK_RECT_PANEL_MAIN_WIDTH + NK_RECT_PANEL_TILE_WIDTH))
-#define NK_RECT_PANEL_NPC_HEIGHT 240
-#define NK_RECT_PANEL_NPC                                     \
-	(nk_rect(NK_RECT_PANEL_MAIN_WIDTH,                    \
-		 glfw_win_size[1] - NK_RECT_PANEL_NPC_HEIGHT, \
+#define NK_RECT_PANEL_NPC_POS_Y \
+	(f32) glfw_win_size[1] - NK_RECT_PANEL_NPC_HEIGHT
+#define NK_RECT_PANEL_NPC_HEIGHT 240.f
+#define NK_RECT_PANEL_NPC                                           \
+	(nk_rect(NK_RECT_PANEL_MAIN_WIDTH, NK_RECT_PANEL_NPC_POS_Y, \
 		 NK_RECT_PANEL_NPC_WIDTH, NK_RECT_PANEL_NPC_HEIGHT))
 
 #define NK_INCLUDE_FIXED_TYPES
@@ -88,11 +92,14 @@ static vec2 tilemap_pan;
 static f32 tilemap_zoom;
 static u32 tile_texture_id;
 static struct tile tile_selected;
+static struct npc npc_selected;
 struct tilemap tilemap;
 
 static struct nk_context *nk_ctx;
 static struct nk_font *nk_font;
 static struct nk_font_atlas *nk_font_atlas;
+static nk_flags string_edit_state = 0;
+static double mouse_pos[2] = { 0., 0. };
 
 static const uint16_t tile_indis[6] = { 0, 2, 1, 2, 3, 1 };
 static mat4 mat_proj;
@@ -101,40 +108,51 @@ static u32 rect_vbo;
 static u32 rect_ebo;
 static u32 rect_shader_prog;
 
-static void _mqme_tilemap_center_in_view(void)
+static void mqme_tilemap_center_in_view(void)
 {
 	vec2 pan_center = {
-		(glfw_win_size[0] >> 1) - (NK_RECT_PANEL_TILE_WIDTH >> 1) -
-			((tilemap.width >> 1) * TILE_SIZE_PXLS) +
-			(NK_RECT_PANEL_MAIN_WIDTH >> 1),
-		(glfw_win_size[1] >> 1) -
-			((tilemap.height >> 1) * TILE_SIZE_PXLS) +
-			(NK_RECT_PANEL_TOP_HEIGHT >> 1),
+		(f32)((glfw_win_size[0] >> 1) -
+		      ((int)NK_RECT_PANEL_TILE_WIDTH >> 1) -
+		      ((tilemap.width >> 1) * TILE_SIZE_PXLS) +
+		      ((int)NK_RECT_PANEL_MAIN_WIDTH >> 1)),
+		(f32)((glfw_win_size[1] >> 1) -
+		      ((tilemap.height >> 1) * TILE_SIZE_PXLS) +
+		      ((int)NK_RECT_PANEL_TOP_HEIGHT >> 1)),
 	};
 	glm_vec2_copy(pan_center, tilemap_pan);
 }
 
-static void _glfw_frame_size_callback(__attribute__((unused)) GLFWwindow *win,
-				      int width, int height)
+static void glfw_frame_size_callback(__attribute__((unused)) GLFWwindow *win,
+				     int width, int height)
 {
 	glViewport(0, 0, width, height);
 	glfw_win_size[0] = width;
 	glfw_win_size[1] = height;
 }
 
-static void _glfw_scroll_callback(__attribute__((unused)) GLFWwindow *window,
-				  __attribute__((unused)) double x_scroll,
-				  double y_scroll)
+static void glfw_scroll_callback(__attribute__((unused)) GLFWwindow *window,
+				 __attribute__((unused)) double x_scroll,
+				 double y_scroll)
 {
+	if ((f32)mouse_pos[1] < NK_RECT_PANEL_TOP_HEIGHT) {
+		return;
+	}
+
+	if ((tile_selected.type == TILE_TYPE_NPC) &&
+	    (f32)mouse_pos[1] > NK_RECT_PANEL_NPC_POS_Y) {
+		return;
+	}
+
 	tilemap_zoom += (f32)y_scroll * .1f;
 	if (tilemap_zoom < .1f) {
 		tilemap_zoom = .1f;
 	}
 }
 
-static void _mqme_tilemap_init_from_file(void)
+static void mqme_tilemap_init_from_file(void)
 {
 	FILE *mapfile = fopen(tilemap_path, "rb");
+
 	if (!mapfile) {
 		debugf(DEBUG_TYPE_INFO, "'%s' not found, creating.\n",
 		       tilemap_path);
@@ -145,8 +163,10 @@ static void _mqme_tilemap_init_from_file(void)
 		tilemap.map_index = 0;
 		for (int y = 0; y < TILEMAP_HEIGHT_MAX; y++) {
 			for (int x = 0; x < TILEMAP_WIDTH_MAX; x++) {
-				*((u32 *)(tilemap.tiles[y] + x)) =
-					(0xFFFF << 16) | TILE_TYPE_FLOOR;
+				struct tile *t = tilemap.tiles[y] + x;
+
+				t->type = TILE_TYPE_FLOOR;
+				t->color = 0xFFFF;
 			}
 		}
 
@@ -159,7 +179,6 @@ static void _mqme_tilemap_init_from_file(void)
 	}
 
 	debugf(DEBUG_TYPE_INFO, "'%s' found, loading.\n", tilemap_path);
-
 	fread_ef16(&tilemap.map_index, mapfile);
 	fread(&tilemap.width, 1, 1, mapfile);
 	fread(&tilemap.height, 1, 1, mapfile);
@@ -181,10 +200,27 @@ static void _mqme_tilemap_init_from_file(void)
 		}
 	}
 
-	/* TODO: COME BACK TO THIS! READ THE NPCS!
-	tilemap.npc_count = 0;
-	tilemap.npcs = malloc(0);
+	tilemap.npcs = calloc(tilemap.npc_count, sizeof(*tilemap.npcs));
+	for (u8 i = 0; i < tilemap.npc_count; i++) {
+		struct npc *n = tilemap.npcs + i;
+		u16 read_pos[2];
 
+		fread(n->name, 1, NPC_NAME_MAX_LEN, mapfile);
+		fread_ef16(read_pos + 0, mapfile);
+		fread_ef16(read_pos + 1, mapfile);
+		n->pos[0] = (int)read_pos[0];
+		n->pos[1] = (int)read_pos[1];
+		fread_ef16(&n->num_dialogue_lines, mapfile);
+		for (u16 j = 0; j < n->num_dialogue_lines; j++) {
+			struct dialogue_line *line = n->dialogue + j;
+
+			fread(&line->speaker, 1, 1, mapfile);
+			fread(line->line, 1, NPC_DIALOGUE_LINE_MAX_LEN,
+			      mapfile);
+		}
+	}
+
+	/* TODO: COME BACK TO THIS! READ THE DOORS!
 	tilemap.door_count = 0;
 	tilemap.doors = malloc(0);
 	*/
@@ -192,7 +228,7 @@ static void _mqme_tilemap_init_from_file(void)
 
 void mqme_init(const char *path, const char *font_path)
 {
-	srand(time(NULL));
+	srand((u32)time(NULL));
 
 	/* OPENGL */
 	glewExperimental = false;
@@ -229,17 +265,22 @@ void mqme_init(const char *path, const char *font_path)
 	glGenTextures(1, &tile_texture_id);
 	glBindTexture(GL_TEXTURE_2D, tile_texture_id);
 
-	int w, h, c;
-	const char *tile_tx_path = "tile-atlas.png";
-	u8 *pixels = stbi_load(tile_tx_path, &w, &h, &c, 3);
-	assertf(pixels, "Failed to load tiles from '%s'\n", tile_tx_path);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, w, h, 0, GL_RGB,
-		     GL_UNSIGNED_BYTE, pixels);
-	stbi_image_free(pixels);
+	{
+		int w, h, c;
+		const char *tile_tx_path = "tile-atlas.png";
+		u8 *pixels = stbi_load(tile_tx_path, &w, &h, &c, 3);
+		assertf(pixels, "Failed to load tiles from '%s'\n",
+			tile_tx_path);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
+				GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER,
+				GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, w, h, 0, GL_RGB,
+			     GL_UNSIGNED_BYTE, pixels);
+		stbi_image_free(pixels);
+	}
 
 	glBindTexture(GL_TEXTURE_2D, 0);
 
@@ -252,16 +293,19 @@ void mqme_init(const char *path, const char *font_path)
 	/* TILEMAP */
 	tilemap_path = path;
 
-	char *slash_ptr = strrchr(tilemap_path, '/');
-	strncpy(tilemap_name, slash_ptr ? (slash_ptr + 1) : tilemap_path,
-		TILEMAP_NAME_MAX_LEN);
+	{
+		char *slash_ptr = strrchr(tilemap_path, '/');
+		strncpy(tilemap_name,
+			slash_ptr ? (slash_ptr + 1) : tilemap_path,
+			TILEMAP_NAME_MAX_LEN);
+	}
 	tilemap_size_ratio_lock = false;
 	tilemap_show_types = false;
 	tilemap_zoom = 1.f;
 	tile_selected = (struct tile){ .type = TILE_TYPE_FLOOR,
 				       .color = (rand() & 0xFFFF) | 1 };
-	_mqme_tilemap_init_from_file();
-	_mqme_tilemap_center_in_view();
+	mqme_tilemap_init_from_file();
+	mqme_tilemap_center_in_view();
 
 	/* NUKLEAR */
 	nk_ctx = nk_glfw3_init(glfw_win, NK_GLFW3_INSTALL_CALLBACKS);
@@ -272,20 +316,26 @@ void mqme_init(const char *path, const char *font_path)
 	nk_glfw3_font_stash_end();
 	nk_style_set_font(nk_ctx, &nk_font->handle);
 
-	glfwSetScrollCallback(glfw_win, _glfw_scroll_callback);
-	glfwSetFramebufferSizeCallback(glfw_win, _glfw_frame_size_callback);
+	glfwSetScrollCallback(glfw_win, glfw_scroll_callback);
+	glfwSetFramebufferSizeCallback(glfw_win, glfw_frame_size_callback);
 }
 
-static void _mqme_update_view_offset(const f32 dt)
+static void mqme_update_view_offset(const f32 dt)
 {
 	int speed_mul = 1 + glfwGetKey(glfw_win, GLFW_KEY_LEFT_SHIFT);
-	tilemap_pan[0] += (glfwGetKey(glfw_win, GLFW_KEY_A) -
-			   glfwGetKey(glfw_win, GLFW_KEY_D)) *
-			  dt * PANNING_PXLS_PER_SEC * speed_mul;
-	tilemap_pan[1] += (glfwGetKey(glfw_win, GLFW_KEY_W) -
-			   glfwGetKey(glfw_win, GLFW_KEY_S)) *
-			  dt * PANNING_PXLS_PER_SEC * speed_mul;
-	/*
+
+	if (string_edit_state == 1) {
+		return;
+	}
+
+	tilemap_pan[0] += (f32)(glfwGetKey(glfw_win, GLFW_KEY_A) -
+				glfwGetKey(glfw_win, GLFW_KEY_D)) *
+			  dt * PANNING_PXLS_PER_SEC * (f32)speed_mul;
+	tilemap_pan[1] += (f32)(glfwGetKey(glfw_win, GLFW_KEY_W) -
+				glfwGetKey(glfw_win, GLFW_KEY_S)) *
+			  dt * PANNING_PXLS_PER_SEC * (f32)speed_mul;
+
+	/* this was originally for clamping the borders, but maybe not needed.
 	if (tilemap.width <= 52) {
 		if (tilemap_pan[0] < NK_RECT_PANEL_MAIN_WIDTH) {
 			tilemap_pan[0] = NK_RECT_PANEL_MAIN_WIDTH;
@@ -314,9 +364,12 @@ static void _mqme_update_view_offset(const f32 dt)
 
 static int rect_place_state = 0;
 
-static void _mqme_update_rect_fill(ivec2 hover_pos)
+static void mqme_update_rect_fill(ivec2 hover_pos)
 {
 	static ivec2 rect_place_a, rect_place_b;
+	ivec2 minpos;
+	ivec2 maxpos;
+
 	if (!rect_place_state) {
 		glm_ivec2_copy(hover_pos, rect_place_a);
 		rect_place_state = 1;
@@ -324,11 +377,10 @@ static void _mqme_update_rect_fill(ivec2 hover_pos)
 	}
 
 	glm_ivec2_copy(hover_pos, rect_place_b);
-
-	ivec2 minpos = { fmin(rect_place_a[0], rect_place_b[0]),
-			 fmin(rect_place_a[1], rect_place_b[1]) };
-	ivec2 maxpos = { fmax(rect_place_a[0], rect_place_b[0]),
-			 fmax(rect_place_a[1], rect_place_b[1]) };
+	minpos[0] = (int)(fmin((f64)rect_place_a[0], (f64)rect_place_b[0]));
+	minpos[1] = (int)(fmin((f64)rect_place_a[1], (f64)rect_place_b[1]));
+	maxpos[0] = (int)(fmax((f64)rect_place_a[0], (f64)rect_place_b[0]));
+	maxpos[1] = (int)(fmax((f64)rect_place_a[1], (f64)rect_place_b[1]));
 	for (int y = minpos[1]; y < maxpos[1] + 1; y++) {
 		for (int x = minpos[0]; x < maxpos[0] + 1; x++) {
 			tilemap.tiles[y][x] = tile_selected;
@@ -338,37 +390,44 @@ static void _mqme_update_rect_fill(ivec2 hover_pos)
 	rect_place_state = 0;
 }
 
-static void _mqme_update_tile_selected(void)
+static void mqme_update_tile_selected(void)
 {
-	double mouse_pos[2];
+	static boolean rmb_new = false;
+	static boolean rmb_old = false;
+	ivec2 tile_hover_pos;
+	struct tile *tile_hover = NULL;
+	vec2 mouse_pos_rel;
+
 	glfwGetCursorPos(glfw_win, mouse_pos + 0, mouse_pos + 1);
 
-	if ((mouse_pos[0] < NK_RECT_PANEL_MAIN_WIDTH) ||
-	    (mouse_pos[0] > glfw_win_size[0] - NK_RECT_PANEL_TILE_WIDTH)) {
+	if (((f32)mouse_pos[0] < NK_RECT_PANEL_MAIN_WIDTH) ||
+	    ((f32)mouse_pos[0] >
+	     (f32)glfw_win_size[0] - NK_RECT_PANEL_TILE_WIDTH)) {
 		return;
 	}
 
-	if (mouse_pos[1] < NK_RECT_PANEL_TOP_HEIGHT) {
+	if ((f32)mouse_pos[1] < NK_RECT_PANEL_TOP_HEIGHT) {
 		return;
 	}
 
-	mouse_pos[0] -= tilemap_pan[0];
-	mouse_pos[1] -= tilemap_pan[1];
+	if ((tile_selected.type == TILE_TYPE_NPC) &&
+	    (f32)mouse_pos[1] > NK_RECT_PANEL_NPC_POS_Y) {
+		return;
+	}
 
-	ivec2 tile_hover_pos = { mouse_pos[0] / TILE_SIZE_PXLS,
-				 mouse_pos[1] / TILE_SIZE_PXLS };
+	mouse_pos_rel[0] = (f32)mouse_pos[0] - tilemap_pan[0];
+	mouse_pos_rel[1] = (f32)mouse_pos[1] - tilemap_pan[1];
+	tile_hover_pos[0] = (int)(mouse_pos_rel[0] / (f32)TILE_SIZE_PXLS);
+	tile_hover_pos[1] = (int)(mouse_pos_rel[1] / (f32)TILE_SIZE_PXLS);
 	if ((tile_hover_pos[0] < 0) || (tile_hover_pos[0] >= tilemap.width) ||
 	    (tile_hover_pos[1] < 0) || (tile_hover_pos[1] >= tilemap.height)) {
 		return;
 	}
 
-	struct tile *tile_hover =
-		tilemap.tiles[tile_hover_pos[1]] + tile_hover_pos[0];
-
-	static int rmb_new = 0, rmb_old = 0;
+	tile_hover = tilemap.tiles[tile_hover_pos[1]] + tile_hover_pos[0];
 	rmb_new = glfwGetMouseButton(glfw_win, GLFW_MOUSE_BUTTON_RIGHT);
 	if ((rmb_new ^ rmb_old) && rmb_new) {
-		_mqme_update_rect_fill(tile_hover_pos);
+		mqme_update_rect_fill(tile_hover_pos);
 	}
 	rmb_old = rmb_new;
 
@@ -380,29 +439,77 @@ static void _mqme_update_tile_selected(void)
 
 	/* place tile */
 	if (glfwGetMouseButton(glfw_win, GLFW_MOUSE_BUTTON_LEFT)) {
+		struct tile htile_old = *tile_hover;
+
 		*tile_hover = tile_selected;
 		rect_place_state = 0;
+
+		if ((tile_hover->type == TILE_TYPE_NPC) &&
+		    (htile_old.type != TILE_TYPE_NPC)) {
+			struct npc *npc_new = NULL;
+
+			if (!tilemap.npcs) {
+				tilemap.npcs = calloc(++tilemap.npc_count,
+						      sizeof(*tilemap.npcs));
+			} else {
+				tilemap.npcs =
+					realloc(tilemap.npcs,
+						++tilemap.npc_count *
+							sizeof(*tilemap.npcs));
+			}
+
+			npc_new = tilemap.npcs + tilemap.npc_count - 1;
+			strncpy(npc_new->name, npc_selected.name,
+				NPC_NAME_MAX_LEN);
+			npc_new->num_dialogue_lines =
+				npc_selected.num_dialogue_lines;
+			npc_new->dialogue = calloc(npc_new->num_dialogue_lines,
+						   sizeof(*npc_new->dialogue));
+			memcpy(npc_new->dialogue, npc_selected.dialogue,
+			       npc_selected.num_dialogue_lines *
+				       sizeof(*npc_selected.dialogue));
+			npc_new->pos[0] = tile_hover_pos[0];
+			npc_new->pos[1] = tile_hover_pos[1];
+
+			debugf(0, "YOU JUST PLACED AN NPC! (now %d)\n",
+			       tilemap.npc_count);
+			debugf(0, "\tName: %s\n", npc_new->name);
+			debugf(0, "\tPos: %d, %d\n", npc_new->pos[0],
+			       npc_new->pos[1]);
+			debugf(0, "\tLines Count: %u\n",
+			       npc_new->num_dialogue_lines);
+			for (u16 i = 0; i < npc_new->num_dialogue_lines; i++) {
+				struct dialogue_line *line =
+					npc_new->dialogue + i;
+
+				debugf(0, "\tLine %d: %d '%s'\n", i,
+				       line->speaker, line->line);
+			}
+		}
 	}
 }
 
 void mqme_update(const f32 dt)
 {
-	_mqme_update_view_offset(dt);
-	_mqme_update_tile_selected();
+	mqme_update_view_offset(dt);
+	mqme_update_tile_selected();
 }
 
-static void _mqme_tilemap_size_process(void)
+static void mqme_tilemap_size_process(void)
 {
-	vec2 old;
+	const vec2 min = { TILEMAP_WIDTH_MIN, TILEMAP_HEIGHT_MIN };
+	const vec2 max = { TILEMAP_WIDTH_MAX, TILEMAP_HEIGHT_MAX };
+	vec2 old, diff, new;
+	int ratio_lock_prop;
+
 	glm_vec2_copy(tilemap_sizef, old);
 	nk_layout_row_begin(nk_ctx, NK_STATIC, 20, 2);
 	for (int i = 0; i < 2; i++) {
-		const int min = i ? TILEMAP_HEIGHT_MIN : TILEMAP_WIDTH_MIN;
-		const int max = i ? TILEMAP_HEIGHT_MAX : TILEMAP_WIDTH_MAX;
 		const char *str = i ? "H" : "W";
+
 		nk_layout_row_push(nk_ctx, 115);
-		nk_property_float(nk_ctx, str, min, tilemap_sizef + i, max - 1,
-				  1, 1);
+		nk_property_float(nk_ctx, str, min[i], tilemap_sizef + i,
+				  max[i] - 1.f, 1.f, 1.f);
 		nk_layout_row_push(nk_ctx, 64);
 		if (nk_button_label(nk_ctx, "Round")) {
 			tilemap_sizef[i] = roundf(tilemap_sizef[i]);
@@ -412,10 +519,9 @@ static void _mqme_tilemap_size_process(void)
 	}
 
 	nk_layout_row_end(nk_ctx);
-
 	nk_layout_row_dynamic(nk_ctx, 20, 1);
 
-	int ratio_lock_prop = tilemap_size_ratio_lock;
+	ratio_lock_prop = tilemap_size_ratio_lock;
 	nk_checkbox_label(nk_ctx, "Lock Aspect", &ratio_lock_prop);
 	tilemap_size_ratio_lock = (boolean)ratio_lock_prop;
 
@@ -423,17 +529,16 @@ static void _mqme_tilemap_size_process(void)
 		return;
 	}
 
-	const vec2 min = { TILEMAP_WIDTH_MIN, TILEMAP_HEIGHT_MIN };
-	const vec2 max = { TILEMAP_WIDTH_MAX, TILEMAP_HEIGHT_MAX };
-	vec2 diff, new;
 	glm_vec2_sub(tilemap_sizef, old, diff);
 	glm_vec2_copy(old, new);
 	for (int i = 0; i < 2; i++) {
-		if (!diff[i]) {
+		f32 ratio;
+
+		if (diff[i] == 0.f) {
 			continue;
 		}
 
-		const f32 ratio = new[!i] / new[i];
+		ratio = new[!i] / new[i];
 		new[i] += diff[i];
 		new[!i] = new[i] * ratio;
 		if (new[!i] >= max[!i]) {
@@ -445,18 +550,19 @@ static void _mqme_tilemap_size_process(void)
 			new[i] = min[!i] / ratio;
 		}
 	}
+
 	glm_vec2_copy(new, tilemap_sizef);
 }
 
-static void _mqme_nk_panel_main(void)
+static void mqme_nk_panel_main(void)
 {
 	if (nk_tree_push(nk_ctx, NK_TREE_TAB, "Map Settings", 0)) {
 		nk_layout_row_dynamic(nk_ctx, 8, 1);
 
 		if (nk_tree_push(nk_ctx, NK_TREE_TAB, "Size", 0)) {
-			_mqme_tilemap_size_process();
+			mqme_tilemap_size_process();
 			if (nk_button_label(nk_ctx, "Center in View")) {
-				_mqme_tilemap_center_in_view();
+				mqme_tilemap_center_in_view();
 			}
 
 			nk_tree_pop(nk_ctx);
@@ -466,19 +572,24 @@ static void _mqme_nk_panel_main(void)
 	}
 }
 
-static void _mqme_nk_panel_tile(void)
+static void mqme_nk_panel_tile(void)
 {
+	struct nk_colorf tile_colf;
+	const char *type_list[TILE_TYPE_COUNT] = { "Spawn", "NPC", "Floor",
+						   "Wall", "Door" };
+#ifndef MQME_TILE_SELECTOR_USE_LIST
+	char type_str[NK_STR_MAX_LEN];
+#endif /* MQME_TILE_SELECTOR_USE_LIST */
+
 	nk_layout_row_dynamic(nk_ctx, 18, 1);
 	nk_label(nk_ctx, "Color:", NK_TEXT_LEFT);
 	nk_layout_row_dynamic(nk_ctx, 25, 1);
 
 	/* Color */
-	struct nk_colorf tile_colf = {
-		.r = (f32)((tile_selected.color & 0xF800) >> 11) / 31.f,
-		.g = (f32)((tile_selected.color & 0x07C0) >> 6) / 31.f,
-		.b = (f32)((tile_selected.color & 0x003E) >> 1) / 31.f,
-		.a = 1.f
-	};
+	tile_colf.r = (f32)((tile_selected.color & 0xF800) >> 11) / 31.f;
+	tile_colf.g = (f32)((tile_selected.color & 0x07C0) >> 6) / 31.f;
+	tile_colf.b = (f32)((tile_selected.color & 0x003E) >> 1) / 31.f;
+	tile_colf.a = 1.f;
 	if (nk_combo_begin_color(nk_ctx, nk_rgb_cf(tile_colf),
 				 nk_vec2(200, 200))) {
 		nk_layout_row_dynamic(nk_ctx, 120, 1);
@@ -527,13 +638,11 @@ static void _mqme_nk_panel_tile(void)
 
 		nk_combo_end(nk_ctx);
 	}
-	tile_selected.color = (u8)(tile_colf.r * 31.f) << 11 |
-			      (u8)(tile_colf.g * 31.f) << 6 |
-			      (u8)(tile_colf.b * 31.f) << 1 | 1;
 
-	/* Type */
-	const char *type_list[TILE_TYPE_COUNT] = { "Spawn", "NPC", "Floor",
-						   "Wall", "Door" };
+	tile_selected.color = (u16)((u8)(tile_colf.r * 31.f) << 11 |
+				    (u8)(tile_colf.g * 31.f) << 6 |
+				    (u8)(tile_colf.b * 31.f) << 1 | 1);
+
 #ifdef MQME_TILE_SELECTOR_USE_LIST
 	nk_label(nk_ctx, "Type:", NK_TEXT_LEFT);
 	nk_layout_row_dynamic(nk_ctx, 24, 1);
@@ -541,12 +650,11 @@ static void _mqme_nk_panel_tile(void)
 					  tile_selected.type, 25,
 					  nk_vec2(200, 200));
 #else /* MQME_TILE_SELECTOR_USE_LIST */
-	char type_str[NK_STR_MAX_LEN];
 	snprintf(type_str, NK_STR_MAX_LEN, "Type: %s",
 		 type_list[tile_selected.type]);
 	nk_label(nk_ctx, type_str, NK_TEXT_LEFT);
 	nk_layout_row_dynamic(nk_ctx, 24, 3);
-	for (int i = 0; i < TILE_TYPE_COUNT; i++) {
+	for (u8 i = 0; i < TILE_TYPE_COUNT; i++) {
 		if (nk_button_label(nk_ctx, type_list[i])) {
 			tile_selected.type = i;
 		}
@@ -555,25 +663,103 @@ static void _mqme_nk_panel_tile(void)
 #endif /* MQME_TILE_SELECTOR_USE_LIST */
 }
 
-void _mqme_nk_panel_npc(void)
+static void mqme_nk_panel_npc(void)
 {
-	nk_layout_row_begin(nk_ctx, NK_STATIC, 24, 1);
+	string_edit_state = 0;
+
+	nk_layout_row_begin(nk_ctx, NK_STATIC, 24, 2);
 	nk_layout_row_push(nk_ctx, 64);
-	nk_label(nk_ctx, "Speaker:", NK_TEXT_LEFT);
+	nk_label(nk_ctx, "Name:", NK_TEXT_LEFT);
+
+	nk_layout_row_push(nk_ctx, 512);
+	if (nk_edit_string_zero_terminated(nk_ctx, NK_EDIT_SIMPLE,
+					   npc_selected.name, NPC_NAME_MAX_LEN,
+					   nk_filter_ascii) == 1) {
+		string_edit_state = 1;
+	}
+
+	nk_layout_row_end(nk_ctx);
+
+	for (u16 i = 0; i < npc_selected.num_dialogue_lines; i++) {
+		struct dialogue_line *line_cur = npc_selected.dialogue + i;
+
+		nk_layout_row_begin(nk_ctx, NK_STATIC, 24, 4);
+
+		nk_layout_row_push(nk_ctx, 84);
+		nk_label(nk_ctx, "Speaker:", NK_TEXT_LEFT);
+
+		nk_layout_row_push(nk_ctx, 64);
+		if (nk_option_label(nk_ctx, "NPC",
+				    line_cur->speaker == DIAL_SPEAKER_NPC)) {
+			line_cur->speaker = DIAL_SPEAKER_NPC;
+		}
+
+		nk_layout_row_push(nk_ctx, 84);
+		if (nk_option_label(nk_ctx, "Player",
+				    line_cur->speaker == DIAL_SPEAKER_PLAYER)) {
+			line_cur->speaker = DIAL_SPEAKER_PLAYER;
+		}
+
+		nk_layout_row_push(nk_ctx, 512);
+		if (nk_edit_string_zero_terminated(
+			    nk_ctx, NK_EDIT_SIMPLE, line_cur->line,
+			    NPC_DIALOGUE_LINE_MAX_LEN, nk_filter_ascii) == 1) {
+			string_edit_state = 1;
+		}
+
+		nk_layout_row_end(nk_ctx);
+	}
+
+	/* adding or removing lines */
+	nk_layout_row_begin(nk_ctx, NK_STATIC, 24, 2);
+	nk_layout_row_push(nk_ctx, 128);
+	if (nk_button_label(nk_ctx, "+ Add Line")) {
+		struct dialogue_line *line_new = NULL;
+
+		if (!npc_selected.dialogue) {
+			npc_selected.dialogue =
+				calloc(++npc_selected.num_dialogue_lines,
+				       sizeof(*npc_selected.dialogue));
+		} else {
+			npc_selected.dialogue =
+				realloc(npc_selected.dialogue,
+					++npc_selected.num_dialogue_lines *
+						sizeof(*npc_selected.dialogue));
+		}
+
+		line_new = npc_selected.dialogue +
+			   npc_selected.num_dialogue_lines - 1;
+		line_new->speaker = DIAL_SPEAKER_NPC;
+		memset(line_new->line, 0, NPC_DIALOGUE_LINE_MAX_LEN);
+
+		debugf(0, "npc_seleceted has %d lines (added 1)\n",
+		       npc_selected.num_dialogue_lines);
+	}
+
+	if (nk_button_label(nk_ctx, "- Remove Line")) {
+		if (npc_selected.num_dialogue_lines) {
+			npc_selected.dialogue =
+				realloc(npc_selected.dialogue,
+					--npc_selected.num_dialogue_lines *
+						sizeof(*npc_selected.dialogue));
+			debugf(0, "npc_seleceted has %d lines (removed 1)\n",
+			       npc_selected.num_dialogue_lines);
+		}
+	}
+
 	nk_layout_row_end(nk_ctx);
 }
 
-static void _mqme_tiles_render(void)
+static void mqme_tiles_render(void)
 {
-	const ivec4 rect = { tilemap_pan[0], tilemap_pan[1],
-			     tilemap_pan[0] + TILE_SIZE_PXLS,
-			     tilemap_pan[1] + TILE_SIZE_PXLS };
-
-	glm_ortho(0, glfw_win_size[0], glfw_win_size[1], 0, -1, 1, mat_proj);
-	const f32 tile_verts[4][4] = { { rect[0], rect[1], 0.f, 0.f },
-				       { rect[2], rect[1], 1.f, 0.f },
-				       { rect[0], rect[3], 0.f, 1.f },
-				       { rect[2], rect[3], 1.f, 1.f } };
+	const ivec4 rect = { (int)tilemap_pan[0], (int)tilemap_pan[1],
+			     (int)tilemap_pan[0] + TILE_SIZE_PXLS,
+			     (int)tilemap_pan[1] + TILE_SIZE_PXLS };
+	const f32 tile_verts[4][4] = { { (f32)rect[0], (f32)rect[1], 0.f, 0.f },
+				       { (f32)rect[2], (f32)rect[1], 1.f, 0.f },
+				       { (f32)rect[0], (f32)rect[3], 0.f, 1.f },
+				       { (f32)rect[2], (f32)rect[3], 1.f,
+					 1.f } };
 	const int u_proj_loc = glGetUniformLocation(rect_shader_prog, "u_proj");
 	const int u_offsets_loc =
 		glGetUniformLocation(rect_shader_prog, "u_offsets");
@@ -587,7 +773,12 @@ static void _mqme_tiles_render(void)
 		glGetUniformLocation(rect_shader_prog, "u_tile_type_count");
 	const int u_texture_indis_loc =
 		glGetUniformLocation(rect_shader_prog, "u_texture_indis");
+	ivec2 offsets[TILEMAP_WIDTH_MAX * TILEMAP_HEIGHT_MAX];
+	int colors[TILEMAP_WIDTH_MAX * TILEMAP_HEIGHT_MAX];
+	int texture_indis[TILEMAP_WIDTH_MAX * TILEMAP_HEIGHT_MAX];
 
+	glm_ortho(0, (f32)glfw_win_size[0], (f32)glfw_win_size[1], 0.f, -1.f,
+		  1.f, mat_proj);
 	assertf(u_proj_loc != -1, "Couldn't find 'u_proj' in shader\n");
 	assertf(u_offsets_loc != -1, "Couldn't find 'u_offsets' in shader\n");
 	assertf(u_colors_loc != -1, "Couldn't find 'u_colors' in shader\n");
@@ -609,7 +800,6 @@ static void _mqme_tiles_render(void)
 	glBindTexture(GL_TEXTURE_2D, tile_texture_id);
 	glUniformMatrix4fv(u_proj_loc, 1, GL_FALSE, (f32 *)mat_proj);
 
-	ivec2 offsets[TILEMAP_WIDTH_MAX * TILEMAP_HEIGHT_MAX];
 	for (int y = 0; y < TILEMAP_HEIGHT_MAX; y++) {
 		for (int x = 0; x < TILEMAP_WIDTH_MAX; x++) {
 			offsets[y * TILEMAP_WIDTH_MAX + x][0] = x;
@@ -617,7 +807,6 @@ static void _mqme_tiles_render(void)
 		}
 	}
 
-	int colors[TILEMAP_WIDTH_MAX * TILEMAP_HEIGHT_MAX];
 	for (int y = 0; y < TILEMAP_HEIGHT_MAX; y++) {
 		for (int x = 0; x < TILEMAP_WIDTH_MAX; x++) {
 			colors[y * TILEMAP_WIDTH_MAX + x] =
@@ -625,7 +814,6 @@ static void _mqme_tiles_render(void)
 		}
 	}
 
-	int texture_indis[TILEMAP_WIDTH_MAX * TILEMAP_HEIGHT_MAX];
 	if (tilemap_show_types && tilemap_zoom > 0.8f) {
 		for (int y = 0; y < TILEMAP_HEIGHT_MAX; y++) {
 			for (int x = 0; x < TILEMAP_WIDTH_MAX; x++) {
@@ -662,9 +850,8 @@ static void _mqme_tiles_render(void)
 	glBindVertexArray(0);
 }
 
-static void _mqme_tilemap_save(void)
+static void mqme_tilemap_save(void)
 {
-	/* FIXME: Separate name and path */
 	FILE *file = fopen(tilemap_path, "wb");
 
 	fwrite_ef16(&tilemap.map_index, file);
@@ -683,23 +870,20 @@ static void _mqme_tilemap_save(void)
 	}
 
 	/* npcs */
-	/* TODO: COME BACK TO NPCS AND DOORS */
-	/*
-	for (int i = 0; i < tilemap.npc_count; i++) {
+	for (u8 i = 0; i < tilemap.npc_count; i++) {
 		const struct npc *n = tilemap.npcs + i;
 
 		fwrite(n->name, 1, NPC_NAME_MAX_LEN, file);
-		fwrite_ef16(n->pos + 0, file);
-		fwrite_ef16(n->pos + 1, file);
+		fwrite_ef16(((const u16 *)(n->pos + 0)), file);
+		fwrite_ef16(((const u16 *)(n->pos + 1)), file);
 		fwrite_ef16(&n->num_dialogue_lines, file);
-		for (int j = 0; j < n->num_dialogue_lines; j++) {
-			const dialogue_line_t *dl = n->dialogue + j;
+		for (u16 j = 0; j < n->num_dialogue_lines; j++) {
+			struct dialogue_line *line = n->dialogue + j;
 
-			fwrite(dl->speaker, 1, NPC_NAME_MAX_LEN, file);
-			fwrite(dl->line, 1, NPC_DIALOGUE_LINE_MAX_LEN, file);
+			fwrite(&line->speaker, 1, 1, file);
+			fwrite(line->line, 1, NPC_DIALOGUE_LINE_MAX_LEN, file);
 		}
 	}
-	*/
 
 	/* doors */
 	/*
@@ -719,35 +903,37 @@ static void _mqme_tilemap_save(void)
 
 void mqme_render(void)
 {
+	char panel_top_label[NK_STR_MAX_LEN];
+
 	glClearColor(0.f, 0.f, 0.f, 1.f);
 	glClear(GL_COLOR_BUFFER_BIT);
 
 	/* TILEMAP */
 	tilemap.width = (u8)tilemap_sizef[0];
 	tilemap.height = (u8)tilemap_sizef[1];
-	_mqme_tiles_render();
+	mqme_tiles_render();
 
 	/* NUKLEAR */
 	nk_glfw3_new_frame();
 
 	/* Top border */
-	char panel_top_label[NK_STR_MAX_LEN];
 	snprintf(panel_top_label, NK_STR_MAX_LEN, "Map Name: '%s'",
 		 tilemap_name);
 	if (nk_begin(nk_ctx, panel_top_label, NK_RECT_PANEL_TOP,
 		     NK_WINDOW_TITLE)) {
+		int show_types_prop = tilemap_show_types;
+
 		nk_layout_row_dynamic(nk_ctx, 24, 8);
 		if (nk_button_label(nk_ctx, "SAVE")) {
-			_mqme_tilemap_save();
+			mqme_tilemap_save();
 		}
 
 		if (nk_button_label(nk_ctx, "SAVE & QUIT")) {
-			_mqme_tilemap_save();
+			mqme_tilemap_save();
 			mqme_free();
 			exit(EXIT_SUCCESS);
 		}
 
-		int show_types_prop = tilemap_show_types;
 		nk_checkbox_label(nk_ctx, "Show Tile Types", &show_types_prop);
 		tilemap_show_types = show_types_prop;
 		nk_end(nk_ctx);
@@ -756,14 +942,14 @@ void mqme_render(void)
 	/* Panel main */
 	if (nk_begin(nk_ctx, "Panel Main", NK_RECT_PANEL_MAIN,
 		     NK_WINDOW_BORDER)) {
-		_mqme_nk_panel_main();
+		mqme_nk_panel_main();
 		nk_end(nk_ctx);
 	}
 
 	/* Panel tile */
 	if (nk_begin(nk_ctx, "Tile Selected", NK_RECT_PANEL_TILE,
 		     NK_WINDOW_BORDER | NK_WINDOW_TITLE)) {
-		_mqme_nk_panel_tile();
+		mqme_nk_panel_tile();
 		nk_end(nk_ctx);
 	}
 
@@ -771,7 +957,7 @@ void mqme_render(void)
 	if (tile_selected.type == TILE_TYPE_NPC) {
 		if (nk_begin(nk_ctx, "NPC Settings", NK_RECT_PANEL_NPC,
 			     NK_WINDOW_BORDER | NK_WINDOW_TITLE)) {
-			_mqme_nk_panel_npc();
+			mqme_nk_panel_npc();
 			nk_end(nk_ctx);
 		}
 	}
@@ -787,7 +973,8 @@ void mqme_free(void)
 	nk_free(nk_ctx);
 
 	/* TILEMAP */
-	*((u32 *)&tile_selected) = 0x0;
+	tile_selected.type = 0x0;
+	tile_selected.color = 0x0;
 	tilemap_zoom = 0.f;
 
 	free(tilemap.doors);
@@ -814,3 +1001,5 @@ void mqme_free(void)
 	glDeleteBuffers(1, &rect_vbo);
 	glDeleteVertexArrays(1, &rect_vao);
 }
+
+#pragma clang diagnostic pop

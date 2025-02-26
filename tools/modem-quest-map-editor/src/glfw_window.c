@@ -10,9 +10,10 @@ ivec2 glfw_win_size;
 void glfw_window_init(void)
 {
 	int glfw_init_ret = glfwInit();
-	assertf(glfw_init_ret, "GLFW failed to init\n");
+	const GLFWvidmode *vidmode = NULL;
 
-	const GLFWvidmode *vidmode = glfwGetVideoMode(glfwGetPrimaryMonitor());
+	assertf(glfw_init_ret, "GLFW failed to init\n");
+	vidmode = glfwGetVideoMode(glfwGetPrimaryMonitor());
 	glfw_win_size[0] = vidmode->width;
 	glfw_win_size[1] = vidmode->height;
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
@@ -25,7 +26,6 @@ void glfw_window_init(void)
 	glfwWindowHint(GLFW_REFRESH_RATE, vidmode->refreshRate);
 	glfwWindowHint(GLFW_DOUBLEBUFFER, GLFW_TRUE);
 	glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
-
 	glfw_win = glfwCreateWindow(glfw_win_size[0], glfw_win_size[1],
 				    WIN_TITLE, NULL, NULL);
 	glfwMakeContextCurrent(glfw_win);

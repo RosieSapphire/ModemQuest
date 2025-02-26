@@ -9,7 +9,8 @@ C_FILES := $(foreach dir,$(SRC_DIRS),$(wildcard $(dir)/*.c))
 O_FILES := $(C_FILES:%.c=$(BUILD_DIR)/%.o)
 
 CC := clang-19
-CFLAGS := -Wall -Wextra -Werror -pedantic -std=c99 -Ofast $(INC_DIRS:%=-I%)
+CFLAGS := -Wall -Wextra -Werror -Weverything -pedantic \
+	  -std=c99 -Ofast $(INC_DIRS:%=-I%)
 ifeq ($(DEBUG_ENABLED), 1)
 	CFLAGS += -ggdb3 -O0 -DDEBUG_ENABLED
 endif

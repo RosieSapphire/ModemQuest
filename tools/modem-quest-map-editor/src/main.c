@@ -1,5 +1,3 @@
-#include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 
 #include "util.h"
@@ -13,8 +11,8 @@
 
 static f32 escape_timer;
 
-static boolean _map_path_verify(char map_path[MAP_PATH_MAX_LEN],
-				const char *argv1)
+static boolean map_path_verify(char map_path[MAP_PATH_MAX_LEN],
+			       const char *argv1)
 {
 	const char *endstr = strrchr(argv1, '.');
 	memset(map_path, 0, MAP_PATH_MAX_LEN);
@@ -33,23 +31,26 @@ static boolean _map_path_verify(char map_path[MAP_PATH_MAX_LEN],
 
 int main(const int argc, const char **argv)
 {
+	char map_path[MAP_PATH_MAX_LEN];
+	f32 time_old;
+
 	assertf(argc == 2, USAGE_STATEMENT_STR(argv[0]));
 	glfw_window_init();
 	debugf(DEBUG_TYPE_INFO, "GLFW Instance Initialized\n");
 	debugf(DEBUG_TYPE_INFO, "OpenGL Instance Initialized\n");
-
-	char map_path[MAP_PATH_MAX_LEN];
-	assertf(_map_path_verify(map_path, argv[1]),
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunsafe-buffer-usage"
+	assertf(map_path_verify(map_path, argv[1]),
+#pragma clang diagnostic pop
 		"Please enter a valid name, with '.map' at the end\n");
 	mqme_init(map_path, "fonts/jbm.ttf");
 	debugf(DEBUG_TYPE_INFO, "MQME Instance Initialized\n");
-
 	escape_timer = 0.f;
-
-	f32 time_old = glfwGetTime();
+	time_old = (f32)glfwGetTime();
 	while (!glfwWindowShouldClose(glfw_win)) {
 		f32 time_new, dt;
-		time_new = glfwGetTime();
+
+		time_new = (f32)glfwGetTime();
 		dt = time_new - time_old;
 		time_old = time_new;
 		glfwPollEvents();

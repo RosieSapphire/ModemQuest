@@ -1,5 +1,7 @@
-build/
+out/
 filesystem/
 *.json
 *.z64
 tools/modem-quest-map-editor/*.map
+tools/modem-quest-map-editor/mqme
+tools/modem-quest-map-editor/out/

@@ -24,6 +24,8 @@
 #undef TILE_SIZE_PXLS
 #define TILE_SIZE_PXLS (int)((32 * tilemap_zoom))
 
+// #define MQME_TILE_SELECTOR_USE_LIST
+
 #define TILEMAP_WIDTH_MIN 1
 #define TILEMAP_HEIGHT_MIN 1
 #define TILEMAP_NPC_MAX_COUNT 64
@@ -53,6 +55,15 @@
 	(nk_rect(glfw_win_size[0] - NK_RECT_PANEL_TILE_WIDTH,        \
 		 NK_RECT_PANEL_TOP_HEIGHT, NK_RECT_PANEL_TILE_WIDTH, \
 		 glfw_win_size[1] - NK_RECT_PANEL_TOP_HEIGHT))
+
+#define NK_RECT_PANEL_NPC_WIDTH \
+	(glfw_win_size[0] -     \
+	 (NK_RECT_PANEL_MAIN_WIDTH + NK_RECT_PANEL_TILE_WIDTH))
+#define NK_RECT_PANEL_NPC_HEIGHT 240
+#define NK_RECT_PANEL_NPC                                     \
+	(nk_rect(NK_RECT_PANEL_MAIN_WIDTH,                    \
+		 glfw_win_size[1] - NK_RECT_PANEL_NPC_HEIGHT, \
+		 NK_RECT_PANEL_NPC_WIDTH, NK_RECT_PANEL_NPC_HEIGHT))
 
 #define NK_INCLUDE_FIXED_TYPES
 #define NK_INCLUDE_STANDARD_IO
@@ -331,6 +342,16 @@ static void _mqme_update_tile_selected(void)
 {
 	double mouse_pos[2];
 	glfwGetCursorPos(glfw_win, mouse_pos + 0, mouse_pos + 1);
+
+	if ((mouse_pos[0] < NK_RECT_PANEL_MAIN_WIDTH) ||
+	    (mouse_pos[0] > glfw_win_size[0] - NK_RECT_PANEL_TILE_WIDTH)) {
+		return;
+	}
+
+	if (mouse_pos[1] < NK_RECT_PANEL_TOP_HEIGHT) {
+		return;
+	}
+
 	mouse_pos[0] -= tilemap_pan[0];
 	mouse_pos[1] -= tilemap_pan[1];
 
@@ -462,6 +483,48 @@ static void _mqme_nk_panel_tile(void)
 				 nk_vec2(200, 200))) {
 		nk_layout_row_dynamic(nk_ctx, 120, 1);
 		tile_colf = nk_color_picker(nk_ctx, tile_colf, NK_RGB);
+		nk_layout_row_dynamic(nk_ctx, 18, 2);
+		if (nk_button_label(nk_ctx, "White")) {
+			tile_colf.r = 1.f;
+			tile_colf.g = 1.f;
+			tile_colf.b = 1.f;
+			tile_colf.a = 1.f;
+		}
+
+		if (nk_button_label(nk_ctx, "Black")) {
+			tile_colf.r = 0.f;
+			tile_colf.g = 0.f;
+			tile_colf.b = 0.f;
+			tile_colf.a = 1.f;
+		}
+
+		if (nk_button_label(nk_ctx, "*2")) {
+			struct nk_colorf old = tile_colf;
+			tile_colf.r *= 2.f;
+			tile_colf.g *= 2.f;
+			tile_colf.b *= 2.f;
+			tile_colf.a = 1.f;
+			if (tile_colf.r > 1.f || tile_colf.g > 1.f ||
+			    tile_colf.b > 1.f) {
+				tile_colf = old;
+			}
+		}
+
+		if (nk_button_label(nk_ctx, "/2")) {
+			tile_colf.r *= .5f;
+			tile_colf.g *= .5f;
+			tile_colf.b *= .5f;
+			tile_colf.a = 1.f;
+		}
+
+		nk_layout_row_dynamic(nk_ctx, 18, 1);
+		if (nk_button_label(nk_ctx, "Randomize")) {
+			tile_colf.r = (float)(rand() & 0xFFFF) / 0xFFFF;
+			tile_colf.g = (float)(rand() & 0xFFFF) / 0xFFFF;
+			tile_colf.b = (float)(rand() & 0xFFFF) / 0xFFFF;
+			tile_colf.a = 1.f;
+		}
+
 		nk_combo_end(nk_ctx);
 	}
 	tile_selected.color = (u8)(tile_colf.r * 31.f) << 11 |
@@ -469,12 +532,35 @@ static void _mqme_nk_panel_tile(void)
 			      (u8)(tile_colf.b * 31.f) << 1 | 1;
 
 	/* Type */
+	const char *type_list[TILE_TYPE_COUNT] = { "Spawn", "NPC", "Floor",
+						   "Wall", "Door" };
+#ifdef MQME_TILE_SELECTOR_USE_LIST
 	nk_label(nk_ctx, "Type:", NK_TEXT_LEFT);
-	const char *type_list[TILE_TYPE_COUNT] = { "Player Spawn", "NPC",
-						   "Floor", "Wall", "Door" };
+	nk_layout_row_dynamic(nk_ctx, 24, 1);
 	tile_selected.type = (u8)nk_combo(nk_ctx, type_list, 5,
 					  tile_selected.type, 25,
 					  nk_vec2(200, 200));
+#else /* MQME_TILE_SELECTOR_USE_LIST */
+	char type_str[NK_STR_MAX_LEN];
+	snprintf(type_str, NK_STR_MAX_LEN, "Type: %s",
+		 type_list[tile_selected.type]);
+	nk_label(nk_ctx, type_str, NK_TEXT_LEFT);
+	nk_layout_row_dynamic(nk_ctx, 24, 3);
+	for (int i = 0; i < TILE_TYPE_COUNT; i++) {
+		if (nk_button_label(nk_ctx, type_list[i])) {
+			tile_selected.type = i;
+		}
+	}
+
+#endif /* MQME_TILE_SELECTOR_USE_LIST */
+}
+
+void _mqme_nk_panel_npc(void)
+{
+	nk_layout_row_begin(nk_ctx, NK_STATIC, 24, 1);
+	nk_layout_row_push(nk_ctx, 64);
+	nk_label(nk_ctx, "Speaker:", NK_TEXT_LEFT);
+	nk_layout_row_end(nk_ctx);
 }
 
 static void _mqme_tiles_render(void)
@@ -679,6 +765,15 @@ void mqme_render(void)
 		     NK_WINDOW_BORDER | NK_WINDOW_TITLE)) {
 		_mqme_nk_panel_tile();
 		nk_end(nk_ctx);
+	}
+
+	/* Panel NPC */
+	if (tile_selected.type == TILE_TYPE_NPC) {
+		if (nk_begin(nk_ctx, "NPC Settings", NK_RECT_PANEL_NPC,
+			     NK_WINDOW_BORDER | NK_WINDOW_TITLE)) {
+			_mqme_nk_panel_npc();
+			nk_end(nk_ctx);
+		}
 	}
 
 	nk_glfw3_render(NK_ANTI_ALIASING_ON, NK_VERT_BUF_SIZE,

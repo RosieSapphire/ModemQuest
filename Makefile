@@ -1,5 +1,5 @@
 DEBUG_ENABLED := 1
-BUILD_DIR := build
+BUILD_DIR := out
 
 include $(N64_INST)/include/n64.mk
 
@@ -62,10 +62,12 @@ filesystem/%.map: assets/%.map
 	cp $< $@
 	$(N64_BINDIR)/mkasset $(MKASSET_FLAGS) -o filesystem $@
 
+.PHONY: clean format
+
 clean:
 	rm -rf $(ROM) $(BUILD_DIR) filesystem
 
 format: $(H_FILES) $(C_FILES)
-	clang-format-15 --style=file -i $^
+	@clang-format-15 --style=file -i $^
 
 -include $(wildcard $(BUILD_DIR)/*.d)

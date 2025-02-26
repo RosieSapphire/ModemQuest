@@ -108,7 +108,7 @@ void npc_player_interact(struct npc *n)
 	n->dialogue_cur = -1;
 }
 
-void npc_dialogue_box_render(const struct npc *n)
+void npc_dialogue_box_render(const struct npc *n, const char *player_name)
 {
 	if (n->state != NPC_STATE_TALKING) {
 		return;
@@ -126,7 +126,10 @@ void npc_dialogue_box_render(const struct npc *n)
 	rdpq_set_fog_color(lighter_col);
 
 	/* speaker box */
-	const char *speaker_name = n->dialogue[n->dialogue_cur].speaker;
+	const u8 speaker_ind = n->dialogue[n->dialogue_cur].speaker;
+	const char *speaker_name =
+		(speaker_ind == DIAL_SPEAKER_NPC) ? n->name : player_name;
+
 	rdpq_fill_rectangle(18, DISPLAY_HEIGHT - (DISPLAY_HEIGHT >> 2) - 20,
 			    20 + (8 * strlen(speaker_name)),
 			    DISPLAY_HEIGHT - (DISPLAY_HEIGHT >> 2));

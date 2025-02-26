@@ -31,24 +31,33 @@ void tilemap_init(const char *path, vec2s spawn_pos)
 	}
 
 	/* npcs */
+	tilemap.npcs = calloc(tilemap.npc_count, sizeof(*tilemap.npcs));
 	for (int i = 0; i < tilemap.npc_count; i++) {
 		struct npc *n = tilemap.npcs + i;
 
+		debugf("NPC:\n");
 		fread(n->name, 1, NPC_NAME_MAX_LEN, file);
-		fread(n->pos, 2, 2, file);
+		debugf("\tName: '%s'\n", n->name);
+		fread(n->pos + 0, 2, 1, file);
+		fread(n->pos + 1, 2, 1, file);
+		debugf("\tPos: %d, %d\n", n->pos[0], n->pos[1]);
 		fread(&n->num_dialogue_lines, 2, 1, file);
-
-		/* npc dialogue */
+		debugf("\tLine Count: %u\n", n->num_dialogue_lines);
+		n->dialogue =
+			calloc(n->num_dialogue_lines, sizeof(*n->dialogue));
+		debugf("\tLines:\n");
 		for (int j = 0; j < n->num_dialogue_lines; j++) {
-			struct dialogue_line *dl = n->dialogue + j;
+			struct dialogue_line *line = n->dialogue + j;
 
-			fread(dl->speaker, 1, NPC_NAME_MAX_LEN, file);
-			fread(dl->line, 1, NPC_DIALOGUE_LINE_MAX_LEN, file);
+			fread(&line->speaker, 1, 1, file);
+			debugf("\t\tSpeaker: %u\n", line->speaker);
+			fread(line->line, 1, NPC_DIALOGUE_LINE_MAX_LEN, file);
+			debugf("\t\tLine: '%s'\n", line->line);
 		}
 
 		n->state = NPC_STATE_IDLE;
 		n->dialogue_cur = -1;
-		n->dialogue_char_cur = 0;
+		n->dialogue_char_cur = -1;
 	}
 
 	/* doors */
@@ -134,7 +143,7 @@ void tilemap_render(const float subtick)
 void tilemap_render_npc_dialogue_boxes(void)
 {
 	for (int i = 0; i < tilemap.npc_count; i++) {
-		npc_dialogue_box_render(tilemap.npcs + i);
+		npc_dialogue_box_render(tilemap.npcs + i, player.name);
 	}
 }
 

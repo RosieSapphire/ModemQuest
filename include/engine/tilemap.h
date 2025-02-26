@@ -1,5 +1,5 @@
-#ifndef _ENGINE_TILEMAP_H_
-#define _ENGINE_TILEMAP_H_
+#ifndef ENGINE_TILEMAP_H
+#define ENGINE_TILEMAP_H
 
 #ifndef IS_USING_MQME
 #include "vector.h"
@@ -33,6 +33,7 @@ enum {
 
 struct tile {
 	u8 type;
+	u8 padding;
 	u16 color;
 };
 
@@ -43,6 +44,7 @@ struct tilemap {
 	u8 npc_count;
 	u8 door_count;
 	struct tile tiles[TILEMAP_HEIGHT_MAX][TILEMAP_WIDTH_MAX];
+	u16 padding;
 	struct npc *npcs;
 	struct door *doors;
 };
@@ -57,4 +59,4 @@ void tilemap_render_npc_dialogue_boxes(void);
 void tilemap_free(void);
 #endif /* IS_USING_MQME */
 
-#endif /* _ENGINE_TILEMAP_H_ */
+#endif /* ENGINE_TILEMAP_H */
